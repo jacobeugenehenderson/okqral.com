@@ -76,13 +76,14 @@
   <!-- Main -->
   <main class="mx-auto max-w-7xl px-6 py-8 grid grid-cols-1 md:grid-cols-2 items-start gap-10">
 
+
 <!-- LEFT: Preview Stage -->
-<section class="lg:sticky lg:top-20 self-start flex justify-center">
+<section class="stage-stick self-start flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
   <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[9/17]">
-    <div class="absolute inset-0 p-4">
+    <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
-      <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col pt-14">
+      <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
         <!-- live SVG mounts here -->
         <div id="qrMount" class="flex-1 min-h-[200px] grid justify-items-center items-start w-full"></div>
       </div>
@@ -96,7 +97,7 @@
 </section>
 
 <!-- RIGHT: Stepper (controls) -->
-<section id="stepper" class="space-y-4 w-full max-w-none md:pl-2">
+<section id="stepper" class="stage-stick space-y-4 w-full max-w-none md:pl-2">
 
   <!-- Caption -->
   <div class="step-card rounded-2xl border border-neutral-200 bg-white overflow-hidden dark:bg-neutral-900 dark:border-neutral-800"
