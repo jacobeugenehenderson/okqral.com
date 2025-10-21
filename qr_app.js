@@ -1622,11 +1622,6 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
   }, 'image/png');
 }  
 
-// --- Hook up the Finish / Generate button ---
-document.getElementById('exportBtn')?.addEventListener('click', async () => {
-  const wantPng = document.getElementById('wantPng')?.checked;
-  const wantSvg = document.getElementById('wantSvg')?.checked;
-
   // get caption or default
   const caption = document.getElementById('campaign')?.value?.trim() || 'LGBTQRCode';
 
@@ -1636,8 +1631,162 @@ document.getElementById('exportBtn')?.addEventListener('click', async () => {
     .replace(/^_+|_+$/g, '')       // trim leading/trailing underscores
     .substring(0, 40);             // limit to 40 chars max
 
-  const base = safeName || 'LGBTQRCode';
+  const base = safeName || 'okQRal';
 
+// --- Sheets reporter (anonymous, no PII) ---
+const REPORT_URL = 'https://script.google.com/macros/s/AKfycby5kbQ1oEM6WedWRn5jwVVreSXp84njT797uZloY_Zpcw96kYjfBD--wsVv7u3iQ67cTA/exec';
+
+// tiny anon IDs (local/session only)
+function getAnonIds(){
+  const LS = window.localStorage;
+  let uid = LS.getItem('okqral_uid');
+  if (!uid) { uid = Math.random().toString(36).slice(2) + Date.now().toString(36); LS.setItem('okqral_uid', uid); }
+  // new session when tab opened
+  if (!window.__okqral_sid) window.__okqral_sid = Math.random().toString(36).slice(2);
+  return { uid, sid: window.__okqral_sid };
+}
+
+function getUtm(){
+  const p = new URLSearchParams(location.search);
+  const g = s => (p.get(s) || '');
+  return {
+    source: g('utm_source'), medium: g('utm_medium'), campaign: g('utm_campaign'),
+    term: g('utm_term'), content: g('utm_content')
+  };
+}
+
+function uaHints(){
+  const uad = navigator.userAgentData || null;
+  const brands = uad?.brands?.map(b => `${b.brand} ${b.version}`).join(', ') || '';
+  return {
+    brands,
+    mobile: !!uad?.mobile,
+    platform: uad?.platform || navigator.platform || '',
+    ua: navigator.userAgent || '' // fallback string (fine for internal analytics)
+  };
+}
+
+function netHints(){
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  return {
+    downlink: c?.downlink ?? null,           // Mbps (approx)
+    effectiveType: c?.effectiveType || '',   // '4g','3g'…
+    rtt: c?.rtt ?? null,                      // ms (approx)
+    saveData: !!c?.saveData
+  };
+}
+
+function accPrefs(){
+  return {
+    darkPref: window.matchMedia?.('(prefers-color-scheme: dark)').matches || false,
+    reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false,
+  };
+}
+
+function pwaState(){
+  const m1 = window.matchMedia?.('(display-mode: standalone)').matches;
+  const m2 = window.navigator?.standalone; // iOS
+  return !!(m1 || m2);
+}
+
+async function reportExport() {
+  try {
+    const { uid, sid } = getAnonIds();
+
+    const payload = {
+      event: 'export',
+      ts: Date.now(),
+
+      // visit/session
+      uid, sid,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      lang: navigator.language || '',
+      langs: navigator.languages || [],
+
+      // page + acquisition
+      page: location.pathname,
+      host: location.hostname,
+      ref: document.referrer ? new URL(document.referrer).origin : '',
+      utm: getUtm(),
+
+      // theme + a11y prefs + runtime theme
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+      prefs: accPrefs(),
+      pwa: pwaState(),
+
+      // device / env
+      device: {
+        ...uaHints(),
+        hw: {
+          memGB: navigator.deviceMemory ?? null,
+          cores: navigator.hardwareConcurrency ?? null
+        },
+        touchPoints: navigator.maxTouchPoints ?? 0
+      },
+
+      // screen & viewport
+      screen: {
+        w: window.screen?.width ?? null,
+        h: window.screen?.height ?? null,
+        availW: window.screen?.availWidth ?? null,
+        availH: window.screen?.availHeight ?? null,
+        colorDepth: window.screen?.colorDepth ?? null,
+      },
+      viewport: {
+        w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1,
+        orient: (screen.orientation && screen.orientation.type) || ''
+      },
+
+      // network
+      net: netHints(),
+
+      // QR structure only (no design/mechanicals)
+      qr: {
+        type: document.getElementById('qrType')?.value || '',
+        ecc:  document.getElementById('ecc')?.value  || '',
+        modulesMode: document.getElementById('modulesMode')?.value || '',
+        centerMode:  document.getElementById('centerMode')?.value  || '',
+        showCaption: !!document.getElementById('showCaption')?.checked
+      },
+
+      // outputs
+      outputs: {
+        png: !!document.getElementById('wantPng')?.checked,
+        svg: !!document.getElementById('wantSvg')?.checked
+      }
+    };
+
+    // no-cors text/plain keeps it fire-and-forget
+    await fetch(REPORT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) {
+    /* silent */
+  }
+}
+
+document.getElementById('exportBtn')?.addEventListener('click', async () => {
+  const wantPng = document.getElementById('wantPng')?.checked;
+  const wantSvg = document.getElementById('wantSvg')?.checked;
+
+  // get caption or default
+  const caption = document.getElementById('campaign')?.value?.trim() || 'okQRal';
+
+  // sanitize filename
+  const safeName = caption
+    .replace(/[^\w\d-_]+/g, '_')   // replace spaces/punct with _
+    .replace(/^_+|_+$/g, '')       // trim leading/trailing _
+    .substring(0, 40);             // max 40 chars
+
+  const base = safeName || 'okQRal';
+
+  // log to Sheets (non-blocking)
+  reportExport().catch(() => { /* silent */ });
+
+  // then download(s)
   if (wantSvg) downloadSvg(`${base}.svg`);
   if (wantPng) downloadPng(`${base}.png`);
 });
