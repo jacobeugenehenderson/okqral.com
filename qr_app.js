@@ -26,14 +26,24 @@
 
 })();
 
+// --- Dark/Light toggle + persistence ---
+const root   = document.documentElement;
+const toggle = document.getElementById('themeToggle');
 
-  // Add listener to toggle manually via menu later
-  const toggle = document.getElementById('themeToggle');
-  if (toggle) {
-    toggle.addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark');
-    });
-  }
+function setTheme(isDark) {
+  root.classList.toggle('dark',  isDark);
+  root.classList.toggle('light', !isDark);
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+toggle && toggle.addEventListener('click', () => {
+  setTheme(!root.classList.contains('dark'));
+});
+
+const mq = window.matchMedia('(prefers-color-scheme: dark)');
+mq.addEventListener?.('change', (e) => {
+  if (!('theme' in localStorage)) setTheme(e.matches);
+});
 
   // --- Footer year ---
   const yearEl = document.getElementById('year');
@@ -298,8 +308,19 @@ function applyPreset(type, index = 0) {
   currentPresetIdx.set(type, idx);
   const p = list[idx];
 
+function setPlaceholder(id, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('placeholder', String(text ?? '')); // shows when empty
+  if (!el.value) {
+    // keep it empty so the native placeholder is visible
+    el.value = '';
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}  
+  
   // Map preset keys → control IDs (only set what’s present)
-  if (p.campaign)            setValAndFire('campaign', p.campaign);
+  if ('campaign' in p)       setPlaceholder('campaign', p.campaign);
   if (p.captionColor)        setValAndFire('captionColor', p.captionColor);
   if (p.bodyColor)           setValAndFire('bodyColor', p.bodyColor);
   if (p.eyeRingColor)        setValAndFire('eyeRingColor', p.eyeRingColor);
@@ -1074,7 +1095,7 @@ function composeCardSvg({
   const NS = "http://www.w3.org/2000/svg";
 
   // Geometry constants (tweak safely)
-  const CARD_ASPECT = 10 / 16;                     // 10:16 portrait
+  const CARD_ASPECT = 1 / 1.25;                       // 1:1 portrait
   const cardHeight  = Math.round(cardWidth / CARD_ASPECT);
 
   const OUTER_PAD   = Math.round(cardWidth * 0.06); // frame inset
@@ -1317,7 +1338,12 @@ function render() {
 
   // Capture caption state early
 const showCap = !!document.getElementById('showCaption')?.checked;
-const caption = (document.getElementById('campaign')?.value || '').trim();
+const captionEl = document.getElementById('campaign');
+const caption = (
+  (captionEl?.value && captionEl.value.trim()) ||
+  captionEl?.getAttribute('placeholder') ||
+  ''
+);
 
   // Toggle visual style (stroke vs fill card)
   const isTransparent = !!document.getElementById('bgTransparent')?.checked;

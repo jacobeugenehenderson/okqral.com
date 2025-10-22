@@ -5,10 +5,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>🤠 okQRal – Prototype</title>
 
+<script>
+(function () {
+  const ls = localStorage.getItem('theme');                 // 'dark' | 'light' | null
+  const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = ls ? (ls === 'dark') : sysDark;              // default: follow system
+
+  const root = document.documentElement;
+  root.classList.toggle('dark',  dark);                     // Tailwind dark: variants
+  root.classList.toggle('light', !dark);                    // your theme.css :root.light
+})();
+</script>
+
   <!-- Fonts & Tailwind -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+ 
+ <script>
+  // Use class strategy so toggling `.dark` works
+  tailwind.config = { darkMode: 'class' };
+</script>
+ 
   <script src="https://cdn.tailwindcss.com"></script>
 
   <!-- Your stylesheet -->
@@ -63,9 +81,12 @@
                     role="menuitem" data-open="privacy">Privacy</button>
             <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
                     role="menuitem" data-open="legal">Legal / Disclaimer</button>
-            <button id="themeToggle" role="menuitem" type="button" class="menu-item">
-              <span class="mi">🌙</span>
-              <span>Toggle Dark Mode</span>
+            <!-- replace the existing toggle button -->
+            <button id="themeToggle" role="menuitem" type="button"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+                    onclick="(function(){const r=document.documentElement;const d=!r.classList.contains('dark');r.classList.remove('dark','light');r.classList.add(d?'dark':'light');localStorage.setItem('theme',d?'dark':'light');})();">
+                  <span class="mi">🌙</span>
+                <span>Toggle Dark Mode</span>
             </button>
           </div>
         </div>
@@ -80,7 +101,7 @@
 <!-- LEFT: Preview Stage -->
 <section class="stage-stick self-start flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[9/17]">
+  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.25]">
     <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
       <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
@@ -88,7 +109,7 @@
         <div id="qrMount" class="flex-1 min-h-[200px] grid justify-items-center items-start w-full"></div>
       </div>
 
-      <!-- OPTIONAL arrows (delete these two buttons if you don’t need them) -->
+      <!-- Previous and Next Arrows -->
     <button id="prevSubtype" class="nav-arrow absolute w-10 h-10 grid place-items-center"></button>
 
     <button id="nextSubtype" class="nav-arrow absolute w-10 h-10 grid place-items-center"></button>
@@ -316,14 +337,32 @@
   </footer>
 
 <script>
-  // Dark mode sync + toggle (unchanged)
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark');
-  }
-  document.getElementById('themeToggle')?.addEventListener('click', () =>
-    document.documentElement.classList.toggle('dark')
-  );
+(function () {
+  const root = document.documentElement;
 
+  function apply(isDark, persist=true){
+    root.classList.remove('dark','light');
+    root.classList.add(isDark ? 'dark' : 'light');
+    if (persist) localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
+
+  // initial: saved choice → system preference
+  const saved   = localStorage.getItem('theme');                  // 'dark' | 'light' | null
+  const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  apply(saved ? saved === 'dark' : sysDark, /*persist=*/false);
+
+  // click handler on the menu item
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    const nextDark = !root.classList.contains('dark');
+    apply(nextDark);
+  }, { passive:true });
+
+  // follow OS changes only if user hasn't chosen
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener?.('change', (e) => {
+    if (!localStorage.getItem('theme')) apply(e.matches, /*persist=*/false);
+  });
+})();
 </script>
 
 <!-- Emoji Modal -->
@@ -553,6 +592,15 @@
       if(e.key==='Escape') close(); 
     });
   })();
+</script>
+
+<script>
+(function () {
+  const onTab = e => { if (e.key === 'Tab') document.body.classList.add('kbd'); };
+  const onMouse = () => document.body.classList.remove('kbd');
+  window.addEventListener('keydown', onTab, { once: true });
+  window.addEventListener('mousedown', onMouse);
+})();
 </script>
 
 </body>

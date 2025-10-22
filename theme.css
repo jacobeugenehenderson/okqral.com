@@ -153,7 +153,7 @@
   --phone-radius: 22px;
 
   /* Arrows placement... */
-  --edge-gutter: clamp(12px, 1.5vw, 24px);
+  --edge-gutter: clamp(12px, 2vw, 24px);
 
   /* Measured content viewport for open panels */
     --design-panel-h: 520px; /* JS will overwrite */
@@ -186,6 +186,12 @@
   --brand-s: 86%;
   --brand-l: 54%;
   --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
+  --ui-surface:         var(--md-sys-color-surface);
+  --ui-surface-variant: var(--md-sys-color-surface-variant);
+  --ui-stroke:          var(--md-sys-color-outline);
+  --ui-stroke-hover:    var(--md-sys-color-outline-variant);
+  --ui-focus-ring:      var(--md-sys-color-primary);
+  --ui-glow-color:      var(--md-sys-color-primary);
   --edge-gutter: clamp(12px, 1.5vw, 24px);
 }
 
@@ -351,6 +357,45 @@ main{ padding-bottom:4.5rem; }
   align-self: start;  /* prevents centering in flex/grid parents */
 }
 
+/* Base step card + header use token surfaces (theme-aware) */
+.step-card{
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-lg);
+  box-shadow: var(--elevation-2);
+}
+
+.step-card .step-header{
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border-bottom: 1px solid var(--ui-stroke);
+}
+
+/* Panel body (the content region) */
+.step-card [data-step-panel]{
+  background: var(--ui-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Hover/focus feedback (matches your global glow) */
+.step-card .step-header:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+.step-card .step-header:focus-visible{
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Tinted placeholder text*/
+.card--fill text.placeholder {
+  fill: rgb(3, 162, 171);
+}
+
 /* =========================
    4. CONTROLS (inputs/selects/Menu)
 ========================= */
@@ -436,20 +481,23 @@ select.rounded-md:hover,
     0 0 var(--hover-glow-blur) var(--hover-glow-color);
 }
 
-/* FOCUS: thin inset stroke + stronger glow ring (unified) */
-.control:focus,
-#appMenuBtn:focus,
-select.rounded-md:focus,
-.topctl:focus,
-button[data-emoji-target]:focus,
-input:focus,
-textarea:focus,
-select:focus{
+/* Hide all focus by default (mouse/touch or scripted focus) */
+:focus { outline: none; }
+
+/* Show the ring only when the user is tabbing (keyboard) */
+body.kbd .control:focus-visible,
+body.kbd #appMenuBtn:focus-visible,
+body.kbd select.rounded-md:focus-visible,
+body.kbd .topctl:focus-visible,
+body.kbd button[data-emoji-target]:focus-visible,
+body.kbd input:focus-visible,
+body.kbd textarea:focus-visible,
+body.kbd select:focus-visible{
   outline: none;
   border-color: var(--ui-stroke-hover);
   box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,       /* thin inset line */
-    0 0 var(--focus-glow-blur) var(--focus-ring-color); /* outer glow */
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
 }
 
 /* Remove native arrow so our chevron matches */
@@ -673,7 +721,7 @@ textarea::placeholder{
   position: relative;
   width: 100%;
   max-width: 400px;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 1 / 1;
   margin-inline: auto;
   border-radius: var(--shape-corner-lg);
   display: grid;
@@ -690,12 +738,14 @@ textarea::placeholder{
   place-items: center;
   box-sizing: border-box;
   width: 100%;
+  height: 100%;                 /* ← keep card height equal to stage */
   border-radius: var(--phone-radius);
   margin: 0;
-  border: none;
+  border-radius: var(--phone-radius); /* stroke */
   background: transparent;
-  overflow: visible;
-  filter: drop-shadow(0 12px 32px rgba(0,0,0,.35));
+  overflow: clip;               /* ← confine fill and children to radius */
+  box-shadow: 0 12px 32px rgba(0,0,0,.35); /* replace filter drop-shadow */
+  /* filter: drop-shadow(...)  ← remove this */
 }
 
 /* Transparent mode — border & glow live on this same element */
@@ -718,7 +768,7 @@ textarea::placeholder{
 #qrMount{
   width: auto;
   height: 100%;
-  margin-top: 6rem;
+  margin-top: 3rem;
   max-height: 100%;
   border-radius: inherit;
   display: block;
@@ -774,13 +824,13 @@ textarea::placeholder{
 #prevSubtype::after{
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-right: 10px solid currentColor;
+  border-right: 10px solid var(--md-sys-color-on-surface);
 }
 #nextSubtype::after{
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-left: 10px solid currentColor;
-}
+  border-left: 10px solid var(--md-sys-color-on-surface);
+}  
 
 /* Put each arrow just outside the card edges */
 #prevSubtype{
