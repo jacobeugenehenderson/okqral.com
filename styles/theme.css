@@ -279,8 +279,7 @@ main{ padding-bottom:4.5rem; }
 
   min-width: 0;
   width: 100%;
-  max-width: 560px;
-  padding-inline: clamp(16px, 5vw, 72px);
+  max-width: 720px;
   margin-inline: auto;
   scroll-padding-top: calc(var(--header-h, 56px) + 8px);
 }
@@ -327,10 +326,9 @@ main{ padding-bottom:4.5rem; }
 #captionBox{
   max-width: 90%;
   margin: .5rem auto 0;
-  /* choose a sensible cap under the QR frame */
-  max-height: clamp(3rem, 16vh, 220px);
+   max-height: clamp(3rem, 16vh, 220px);
   overflow: auto;
-  scrollbar-width: thin;                  /* FF */
+  scrollbar-width: thin;
 }
 #captionBox::-webkit-scrollbar{ width: 8px; }
 #captionBox::-webkit-scrollbar-thumb{ border-radius: 999px; background: var(--ui-stroke-hover); }
@@ -340,12 +338,31 @@ main{ padding-bottom:4.5rem; }
   line-height: 1.15;
 }
 
-/* Caption textarea */
-#campaign {
-  min-height: calc(var(--density-control-h) * 2.5);
-  padding: .5rem .75rem;      /* matches inputs */
-  resize: vertical;           /* let the user pull it taller */
-  line-height: 1.25;
+/* Caption panel: allow full-width children */
+.step-card[data-step="caption"] [data-step-panel]{
+  display: flex;
+  align-items: stretch;   /* child can fill the row */
+  min-width: 0;           /* prevents flex overflow clipping */
+}
+
+/* If the input is inside a <label>, collapse it to a single column */
+label:has(#campaign){
+  display:grid;
+  grid-template-columns: 1fr !important;
+}
+label:has(#campaign) > *{ min-width:0; }
+
+/* Caption text input: single row, full width */
+#campaign{
+  display:block;
+  width: 100%;
+  height: var(--density-control-h);
+  line-height: var(--density-control-h);
+  padding: 0 .75rem;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: none;       /* Focus Ring */
 }
 
 /* Nudge the text down inside each step-card */
@@ -418,7 +435,6 @@ input[type="number"],
 input[type="search"],
 input[type="password"],
 input[type="color"],
-textarea,
 select{
   background: var(--ui-surface-variant);
   color: var(--md-sys-color-on-surface);
@@ -730,6 +746,7 @@ textarea::placeholder{
 .preview-stage{
   position: relative;
   width: 100%;
+  min-width: 320px;
   max-width: 400px;
   aspect-ratio: 1 / 1;
   margin-inline: auto;
@@ -790,13 +807,6 @@ textarea::placeholder{
   height: auto;
   border-radius: inherit;
 }
-
-.preview-stage{
-  display: grid;
-  /* replace place-items: center; with: */
-  place-items: start center;  /* vertical start, horizontal center */
-}
-
 
 /* =========================
    ARROWS
