@@ -166,6 +166,18 @@
 
   /* … existing vars … */
   --stack-gap: 0rem;        /* unify spacing rhythm */
+
+  /* ----- BG CARD STROKE (filled mode) ----- */
+    --bg-card-stroke-color:  hsl(179, 100%, 38%);   /* sharp turquoise */
+    --bg-card-stroke-width:  1px;                /* tweak for subtlety */
+    --bg-card-stroke-glow:   0 0 10px rgba(0,240,200,.35);  /* optional soft halo */
+
+  /* Featured / open card accent */
+  --featured-stroke-width: 1px; /* increase to 3–4px if you want chunkier */
+  --featured-stroke-color: color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent);
+  --featured-stroke-glow: 0 0 12px rgba(160,140,255,.35);
+
+  --stepper-stroke-closed: hsl(221, 100%, 7%); /* custom color */
 }
 
 /* shared sticky offset */
@@ -243,14 +255,15 @@ main{ padding-bottom:4.5rem; }
 /* Open card highlight */
 #stepper>div{ transition:background-color .15s,border-color .15s; }
 #stepper .step-header{ transition:background-color .15s,border-color .15s,color .15s; }
-#stepper>div.is-open>.step-header{
+#stepper>div.is-open>.step-header {
+  border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
   background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
-  border-color: color-mix(in oklab, var(--md-sys-color-primary) 35%, transparent);
 }
 
-#stepper>div.is-open{
+#stepper>div.is-open {
+  border: var(--featured-stroke-width) solid var(--featured-stroke-color);
+  box-shadow: var(--featured-stroke-glow);
   background: color-mix(in oklab, var(--md-sys-color-primary) 6%, transparent);
-  border-color: color-mix(in oklab, var(--md-sys-color-primary) 18%, transparent);
 }
 
 /* The stepper is the scroll container + the gap owner */
@@ -396,6 +409,12 @@ main{ padding-bottom:4.5rem; }
   fill: rgb(3, 162, 171);
 }
 
+/* Closed accordion buttons: navy stroke */
+#stepper > div:not(.is-open),
+#stepper > div:not(.is-open) .step-header{
+  border-color: var(--stepper-stroke-closed);
+}
+
 /* =========================
    4. CONTROLS (inputs/selects/Menu)
 ========================= */
@@ -456,7 +475,6 @@ select.rounded-md,
     box-shadow var(--motion-duration-1) var(--motion-ease),
     border-color var(--motion-duration-1) var(--motion-ease);
 }
-
 
 /* Emoji picker buttons */
 #emojiGrid button{
@@ -617,7 +635,7 @@ button[data-emoji-target]{
   color: var(--md-sys-color-on-surface);
   border: 1px solid var(--ui-stroke);
   border-radius: var(--shape-corner-md);
-  box-shadow: 0 0 0 1px var(--ui-stroke) inset, var(--elevation-1);
+    box-shadow: 0 0 0 1px var(--ui-stroke) inset;
 
   /* sizing / type */
   height: var(--density-control-h);
@@ -758,10 +776,10 @@ textarea::placeholder{
 
 /* Filled mode — same box, same radius, just a fill color */
 #qrPreview.card--fill {
-  border: none;
-  box-shadow: none;
-  background: var(--frame-color, #ffffff); /* set by JS */
+  background: var(--frame-color, #ffffff);
+  border: var(--bg-card-stroke-width) solid var(--bg-card-stroke-color);
   border-radius: var(--phone-radius);
+  box-shadow: var(--bg-card-stroke-glow);
 }
 
 /* QR mount = container for the SVG */

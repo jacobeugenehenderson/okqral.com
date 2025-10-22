@@ -696,7 +696,7 @@ function buildQrSvg({
 
   // Module fill mode + scale + emoji
   modulesMode = 'Shape',         // 'Shape' | 'Emoji'
-  modulesScale = 0.9,            // 0.1..1
+  modulesScale = 1.5,            // 0.1..1
   modulesEmoji = '😀',
 
   // Center content
