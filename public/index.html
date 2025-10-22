@@ -101,13 +101,17 @@
   </header>
 
   <!-- Main -->
-  <main class="mx-auto max-w-7xl px-6 py-8 grid grid-cols-1 md:grid-cols-2 items-start gap-10">
-
+  <main
+  class="mx-auto max-w-7xl px-6 py-8 grid
+         grid-cols-1
+         xl:grid-cols-2
+         justify-items-center xl:justify-items-start
+         items-start gap-10">
 
 <!-- LEFT: Preview Stage -->
-<section class="stage-stick self-start flex justify-center">
+<section class="stage-stick justify-self-center w-full flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.1]">
+<div class="preview-stage relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.1]">
     <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
       <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
@@ -260,7 +264,7 @@
       <label class="text-sm" id="centerScaleWrap">
         <span class="block mb-1">Scale</span>
         <div class="flex items-center gap-2">
-          <input id="centerScale" type="number" step="0.05" min="0.1" max="1.5" class="w-full rounded-md border px-3 py-2" value="1" />
+          <input id="centerScale" type="number" step="0.05" min="0.1" max="1.5" class="w-full rounded-md border px-3 py-2" value="2" />
         </div>
       </label>
     </div>

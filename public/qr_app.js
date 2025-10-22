@@ -319,6 +319,9 @@ function applyPreset(type, index = 0) {
   currentPresetIdx.set(type, idx);
   const p = list[idx];
 
+  // ✅ Always load caption from the selected preset
+  setCaptionFromPreset(p, type);
+
 function setPlaceholder(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -358,11 +361,30 @@ function setPlaceholder(id, text) {
   if (typeof render === 'function')             render();
 }
 
+function setCaptionFromPreset(preset, typeName) {
+  const el = document.getElementById('campaign');
+  if (!el) return;
+
+  const text =
+    preset?.campaign ??
+    preset?.caption ??
+    preset?.label ??
+    preset?.name ??
+    String(typeName || '');
+
+  el.value = text;                               // 🔒 overwrite on subtype change
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 // After the existing type-change listener (form rebuild), apply last/first preset
 typeSel.addEventListener('change', () => {
   const t = typeSel.value;
   if (!currentPresetIdx.has(t)) currentPresetIdx.set(t, 0);
   applyPreset(t, currentPresetIdx.get(t));
+
+  // 🔹 add this block inside the listener, right after applyPreset
+  const list = getPresets(t);
+  setCaptionFromPreset(list[currentPresetIdx.get(t)] || {}, t);
 });
 
 // Arrow handlers
@@ -378,6 +400,9 @@ function cyclePreset(dir) {
   const cur  = currentPresetIdx.get(t) ?? 0;
   const next = (cur + dir + list.length) % list.length;
   applyPreset(t, next);
+
+
+  setCaptionFromPreset(list[next] || {}, t);
 }
 
 prevBtn?.addEventListener('click', () => cyclePreset(-1));
@@ -948,7 +973,7 @@ const cut = (() => {
     t.setAttribute('dominant-baseline', 'central');
 
     // scale the emoji relative to the cleared square
-    t.setAttribute('font-size', String(Math.floor(cw * 0.7 * cScale)));
+    t.setAttribute('font-size', String(Math.floor(cw * 1 * cScale)));
 
     t.setAttribute(
         'font-family',
@@ -1660,7 +1685,7 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
 }  
 
   // get caption or default
-  const caption = document.getElementById('campaign')?.value?.trim() || 'LGBTQRCode';
+  const caption = document.getElementById('campaign')?.value?.trim() || 'okQRal';
 
   // sanitize filename (remove illegal chars, trim spaces)
   const safeName = caption
