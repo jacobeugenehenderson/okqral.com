@@ -61,7 +61,7 @@ html.light, :root.light {
   --ui-stroke-hover:    var(--md-sys-color-outline-variant);
   --ui-focus-ring:      var(--md-sys-color-primary);
   --ui-glow-color:      var(--md-sys-color-primary);
-  --edge-gutter: clamp(12px, 1.5vw, 24px);
+  --edge-gutter: clamp(24px, 1.5vw, 24px);
 }
 
 :root{
@@ -778,7 +778,7 @@ textarea::placeholder{
 #qrMount{
   width: auto;
   height: 100%;
-  margin-top: 3rem;
+  margin-top: 4rem;
   max-height: 100%;
   border-radius: inherit;
   display: block;

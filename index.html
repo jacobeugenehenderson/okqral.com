@@ -81,9 +81,18 @@
                     role="menuitem" data-open="privacy">Privacy</button>
             <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
                     role="menuitem" data-open="legal">Legal / Disclaimer</button>
-            <button id="themeToggle" type="button"
-                    onclick="setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark')">
-                    <span class="mi">🌙</span><span>Toggle Dark Mode</span>
+            <button id="themeToggle" role="menuitem" type="button"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+              onclick="(function(){
+                const r = document.documentElement;
+                const next = r.classList.contains('dark') ? 'light' : 'dark';
+                r.classList.remove('dark','light');
+                r.classList.add(next);
+                localStorage.setItem('theme', next);
+              })()">
+              <span class="mi">🌙</span>
+              <span>Toggle Dark Mode</span>
             </button>
           </div>
         </div>
@@ -98,7 +107,7 @@
 <!-- LEFT: Preview Stage -->
 <section class="stage-stick self-start flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.15]">
+  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.1]">
     <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
       <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
