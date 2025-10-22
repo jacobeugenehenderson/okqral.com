@@ -30,6 +30,14 @@
 const root   = document.documentElement;
 const toggle = document.getElementById('themeToggle');
 
+// --- Initialize theme from saved or system preference ---
+(function initTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') setTheme(true);
+  else if (saved === 'light') setTheme(false);
+  else setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+})();
+
 function setTheme(isDark) {
   root.classList.toggle('dark',  isDark);
   root.classList.toggle('light', !isDark);
@@ -1095,7 +1103,7 @@ function composeCardSvg({
   const NS = "http://www.w3.org/2000/svg";
 
   // Geometry constants (tweak safely)
-  const CARD_ASPECT = 1 / 1.25;                       // 1:1 portrait
+  const CARD_ASPECT = 1 / 1.15;                       // 1:1 portrait
   const cardHeight  = Math.round(cardWidth / CARD_ASPECT);
 
   const OUTER_PAD   = Math.round(cardWidth * 0.06); // frame inset

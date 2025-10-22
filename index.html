@@ -81,12 +81,9 @@
                     role="menuitem" data-open="privacy">Privacy</button>
             <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
                     role="menuitem" data-open="legal">Legal / Disclaimer</button>
-            <!-- replace the existing toggle button -->
-            <button id="themeToggle" role="menuitem" type="button"
-                    class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
-                    onclick="(function(){const r=document.documentElement;const d=!r.classList.contains('dark');r.classList.remove('dark','light');r.classList.add(d?'dark':'light');localStorage.setItem('theme',d?'dark':'light');})();">
-                  <span class="mi">🌙</span>
-                <span>Toggle Dark Mode</span>
+            <button id="themeToggle" type="button"
+                    onclick="setTheme(document.documentElement.classList.contains('dark') ? 'light' : 'dark')">
+                    <span class="mi">🌙</span><span>Toggle Dark Mode</span>
             </button>
           </div>
         </div>
@@ -101,7 +98,7 @@
 <!-- LEFT: Preview Stage -->
 <section class="stage-stick self-start flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.25]">
+  <div class="relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.15]">
     <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
       <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
@@ -118,7 +115,8 @@
 </section>
 
 <!-- RIGHT: Stepper (controls) -->
-<section id="stepper" class="stage-stick space-y-4 w-full max-w-none md:pl-2">
+<section id="stepper"
+  class="stage-stick space-y-4 w-full max-w-[560px] mx-auto justify-self-center">
 
   <!-- Caption -->
   <div class="step-card rounded-2xl border border-neutral-200 bg-white overflow-hidden dark:bg-neutral-900 dark:border-neutral-800"
@@ -601,6 +599,23 @@
   window.addEventListener('keydown', onTab, { once: true });
   window.addEventListener('mousedown', onMouse);
 })();
+</script>
+
+<script>
+  // single source of truth for theme
+  window.setTheme = function(mode /* 'dark' | 'light' */) {
+    const r = document.documentElement;
+    r.classList.remove('dark','light');
+    r.classList.add(mode);
+    localStorage.setItem('theme', mode);
+  };
+
+  // initialize on load: saved choice → system preference
+  (function initTheme(){
+    const saved = localStorage.getItem('theme');
+    const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    setTheme(saved || sys);
+  })();
 </script>
 
 </body>
