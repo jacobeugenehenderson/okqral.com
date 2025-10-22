@@ -38,32 +38,6 @@
 /* =========================
    1. CONTROL PANEL — BASE (dark by default)
 ========================= */
-/* Ensure both selector styles respond to the same classes */
-html.dark { color-scheme: dark; }
-html.light { color-scheme: light; }
-
-/* Mirror tokens whether the class is on <html> (html.light) or :root.light */
-html.light, :root.light {
-  /* Light overrides — keep in sync with your existing :root.light values */
-  --md-sys-color-background:      #fafafa;
-  --md-sys-color-on-background:   #0b0b0b;
-  --md-sys-color-surface:         #ffffff;
-  --md-sys-color-on-surface:      #111;
-  --md-sys-color-surface-variant: #f1f1f6;
-  --md-sys-color-outline:         rgba(110,90,210,.35);
-  --md-sys-color-outline-variant: rgba(110,90,210,.55);
-  --brand-s: 86%;
-  --brand-l: 54%;
-  --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
-  --ui-surface:         var(--md-sys-color-surface);
-  --ui-surface-variant: var(--md-sys-color-surface-variant);
-  --ui-stroke:          var(--md-sys-color-outline);
-  --ui-stroke-hover:    var(--md-sys-color-outline-variant);
-  --ui-focus-ring:      var(--md-sys-color-primary);
-  --ui-glow-color:      var(--md-sys-color-primary);
-  --edge-gutter: clamp(12px, 1.5vw, 24px);
-}
-
 :root{
   /* ----- Brand / Accent (HSL-based) ----- */
   --brand-h: 266;
@@ -179,7 +153,7 @@ html.light, :root.light {
   --phone-radius: 22px;
 
   /* Arrows placement... */
-  --edge-gutter: clamp(24px, 2vw, 24px);
+  --edge-gutter: clamp(12px, 2vw, 24px);
 
   /* Measured content viewport for open panels */
     --design-panel-h: 520px; /* JS will overwrite */
@@ -209,8 +183,31 @@ html.light, :root.light {
 /* shared sticky offset */
 .stage-stick {
   position: sticky;
-  top: var(--header-h);
+  top: var(--header-h);     /* match your header height */
+
+}  
+
+:root.light{
+  --md-sys-color-background: #fafafa;
+  --md-sys-color-on-background: #0b0b0b;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #111;
+  --md-sys-color-surface-variant: #f1f1f6;
+  --md-sys-color-outline: rgba(110,90,210,.35);
+  --md-sys-color-outline-variant: rgba(110,90,210,.55);
+  --brand-s: 86%;
+  --brand-l: 54%;
+  --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
+  --ui-surface:         var(--md-sys-color-surface);
+  --ui-surface-variant: var(--md-sys-color-surface-variant);
+  --ui-stroke:          var(--md-sys-color-outline);
+  --ui-stroke-hover:    var(--md-sys-color-outline-variant);
+  --ui-focus-ring:      var(--md-sys-color-primary);
+  --ui-glow-color:      var(--md-sys-color-primary);
+  --edge-gutter: clamp(12px, 1.5vw, 24px);
 }
+
+
 
 /* =========================
    2. GLOBAL SCAFFOLD
@@ -280,8 +277,8 @@ main{ padding-bottom:4.5rem; }
   min-width: 0;
   width: 100%;
   max-width: 560px;
-  padding-inline: clamp(16px, 5vw, 72px);
-  margin-inline: auto;
+  padding-right: clamp(16px, 5vw, 72px);
+  margin-right: var(--edge-gutter);
   scroll-padding-top: calc(var(--header-h, 56px) + 8px);
 }
 
@@ -360,6 +357,17 @@ main{ padding-bottom:4.5rem; }
 /* Optional: give the very first control inside a panel a bit of air */
 .step-card [data-step-panel] > :first-child {
   margin-top: 0.25rem;
+}
+
+/* theme.css */
+.stage-stick{ position: sticky; top: var(--header-h);
+}
+
+/* Keep preview + accordion aligned under the same top offset */
+.stage-stick{
+  position: sticky;
+  top: 5rem;          /* matches the left column’s `lg:top-20` (80px) */
+  align-self: start;  /* prevents centering in flex/grid parents */
 }
 
 /* Base step card + header use token surfaces (theme-aware) */
