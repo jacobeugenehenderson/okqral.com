@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LGBTQRCode – Prototype</title>
+
+  <!-- Fonts & Tailwind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Your stylesheet -->
+  <link rel="stylesheet" href="./styles/theme.css">
+</head>
+
+<body class="theme-grid min-h-screen text-neutral-900 dark:text-neutral-100">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-white border-b border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800">
+    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center gap-8">
+      <h1 class="text-lg font-semibold tracking-tight">LGBTQRCode</h1>
+      <div class="ml-auto flex items-center gap-3">
+        <label class="text-sm">
+          <span class="sr-only">Type</span>
+          <select id="qrType" class="rounded-md border px-3 py-2 text-sm">
+            <option>URL</option>
+            <option>Payment</option>
+            <option>WiFi</option>
+            <option>Contact</option>
+            <option>Message</option>
+            <option>Event</option>
+            <option>Map</option>
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="sr-only">ECC</span>
+          <select id="ecc" class="rounded-md border px-3 py-2 text-sm">
+            <option>L</option>
+            <option selected>M</option>
+            <option>Q</option>
+            <option>H</option>
+          </select>
+        </label>
+
+        <!-- App menu -->
+        <div class="relative" id="appMenuWrap">
+          <button id="appMenuBtn"
+            class="px-3 py-2 rounded-md border text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu">
+            Menu ▾
+          </button>
+          <div id="appMenu"
+               class="hidden absolute right-0 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-md
+                      dark:bg-neutral-800 dark:border-neutral-700"
+               role="menu" aria-labelledby="appMenuBtn">
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    role="menuitem" data-open="aboutApp">About this app</button>
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    role="menuitem" data-open="aboutQR">About QR Codes</button>
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    role="menuitem" data-open="privacy">Privacy</button>
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    role="menuitem" data-open="legal">Legal / Disclaimer</button>
+            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+                    role="menuitem" id="themeToggle">🌙 Toggle Dark Mode</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="mx-auto max-w-7xl px-6 py-8 grid grid-cols-1 md:grid-cols-2 items-start gap-10">
+
+<!-- LEFT: Preview (restores working portrait stage + arrows) -->
+<section class="lg:sticky lg:top-20 self-start flex justify-center">
+  <div class="relative w-full max-w-[340px] mx-auto rounded-2xl overflow-visible">
+    <!-- keeps a portrait box (≈150% height of width) -->
+    <div class="pt-[150%]"></div>
+
+    <!-- stage overlay pinned to the box above -->
+    <div class="absolute inset-0 p-4 flex items-center justify-center">
+      <div class="relative w-full h-full rounded-xl">
+        <!-- Card surface (the preview container the JS styles) -->
+        <div id="qrPreview"
+             class="w-full h-full min-h-[280px] rounded-xl overflow-visible flex flex-col pt-14">
+          <!-- live SVG mounts here -->
+          <div id="qrMount"
+               class="flex-1 min-h-[200px] grid justify-items-center items-start w-full"></div>
+
+          <!-- Arrows inside the same relative box -->
+          <button id="prevSubtype"
+                  class="nav-arrow absolute left-0 top-1/2 -translate-y-1/2 -translate-x-[150%]
+                         w-10 h-10 grid place-items-center rounded-full bg-white/90 z-20
+                         border border-neutral-200 shadow dark:bg-neutral-800 dark:border-neutral-700"> </button>
+
+          <button id="nextSubtype"
+                  class="nav-arrow absolute right-0 top-1/2 -translate-y-1/2 translate-x-[150%]
+                         w-10 h-10 grid place-items-center rounded-full bg-white/90 z-20
+                         border border-neutral-200 shadow dark:bg-neutral-800 dark:border-neutral-700"> </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RIGHT: Stepper (controls) -->
+<section id="stepper" class="space-y-4 w-full max-w-none md:pl-8">
+
+  <!-- Caption -->
+  <div class="step-card rounded-2xl border border-neutral-200 bg-white overflow-hidden dark:bg-neutral-900 dark:border-neutral-800">
+  <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+    Caption
+  </button>
+  <div class="px-4 pb-4 space-y-3" data-step-panel>
+      <label class="block text-sm">
+        <input id="campaign" type="text" class="w-full rounded-md border px-3 py-2" placeholder="ENGAGE" />
+      </label>
+      <label class="inline-flex items-center gap-2">
+        <input id="showCaption" type="checkbox" class="rounded border" checked />
+        <span class="text-sm">Show caption under preview</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Design  -->
+  <div class="step-card rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Design
+    </button>
+    <div class="px-4 pb-4 space-y-4" data-step-panel>
+
+      <!-- Caption Text Color (upper-left cell) -->
+      <label class="text-sm sm:col-span-2">
+        <span class="block mb-1">Caption Text Color</span>
+        <div class="flex items-center gap-2">
+          <input id="captionColor" type="color" class="h-9 w-10 rounded-md border" value="#000000" />
+          <input id="captionColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+        </div>
+      </label>
+
+      <!-- Colors -->
+      <div class="grid gap-3 sm:grid-cols-2">
+        <!-- Body -->
+        <label class="text-sm">
+          <span class="block mb-1">Body</span>
+          <div class="flex items-center gap-2">
+            <input id="bodyColor" type="color" class="h-9 w-10 rounded-md border" value="#000000" />
+            <input id="bodyColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Eye Ring -->
+        <label class="text-sm">
+          <span class="block mb-1">Eye Ring</span>
+          <div class="flex items-center gap-2">
+            <input id="eyeRingColor" type="color" class="h-9 w-10 rounded-md border" value="#9CA3AF" />
+            <input id="eyeRingColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Eye Center -->
+        <label class="text-sm">
+          <span class="block mb-1">Eye Center</span>
+          <div class="flex items-center gap-2">
+            <input id="eyeCenterColor" type="color" class="h-9 w-10 rounded-md border" value="#6B7280" />
+            <input id="eyeCenterColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Background (spans both columns) -->
+        <div class="sm:col-span-2 grid grid-cols-[auto,1fr,auto] items-center gap-3">
+          <span class="text-sm">Background</span>
+          <div class="flex items-center gap-2">
+            <input id="bgColor" type="color" class="h-9 w-10 rounded-md border" value="#FFFFFF" />
+            <input id="bgColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+          <label class="inline-flex items-center gap-2">
+            <input id="bgTransparent" type="checkbox" class="rounded border" />
+            <span class="text-sm">Transparent</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Shapes -->
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="text-sm">
+          <span class="block mb-1">Modules</span>
+          <select id="moduleShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="block mb-1">Eye Ring</span>
+          <select id="eyeRingShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="block mb-1">Eye Center</span>
+          <select id="eyeCenterShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Module fill -->
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="text-sm">
+          <span class="block mb-1">Module Fill</span>
+          <select id="modulesMode" class="w-full rounded-md border px-3 py-2">
+            <option>Shape</option><option>Emoji</option>
+          </select>
+        </label>
+        <label class="text-sm" id="modulesEmojiWrap">
+          <span class="block mb-1">Emoji</span>
+          <div class="flex gap-2">
+            <input id="modulesEmoji" type="text" class="w-full rounded-md border px-3 py-2" value="😀" />
+            <button type="button" data-emoji-target="modulesEmoji" class="px-3 py-2 text-sm rounded-md border hover:bg-neutral-50">Pick…</button>
+          </div>
+        </label>
+        <label class="text-sm" id="modulesScaleWrap">
+          <span class="block mb-1">Scale</span>
+          <div class="flex items-center gap-2">
+            <input id="modulesScale" type="number" step="0.05" min="0.1" max="1" class="w-full rounded-md border px-3 py-2" value="0.9" />
+          </div>
+        </label>
+      </div>
+
+      <!-- Center content -->
+      <div class="grid gap-3 sm:grid-cols-3 items-start">
+        <label class="text-sm">
+          <span class="block mb-1">Center content</span>
+          <select id="centerMode" class="w-full rounded-md border px-3 py-2">
+            <option>None</option>
+            <option>Blank</option>
+            <option>Emoji</option>
+          </select>
+        </label>
+        <label class="text-sm" id="centerEmojiWrap">
+          <span class="block mb-1">Emoji</span>
+          <div class="flex gap-2">
+            <input id="centerEmoji" type="text" class="w-full rounded-md border px-3 py-2" value="😊" />
+            <button type="button" data-emoji-target="centerEmoji" class="px-3 py-2 text-sm rounded-md border hover:bg-neutral-50">Pick…</button>
+          </div>
+        </label>
+        <label class="text-sm" id="centerScaleWrap">
+          <span class="block mb-1">Scale</span>
+          <div class="flex items-center gap-2">
+            <input id="centerScale" type="number" step="0.05" min="0.1" max="1.5" class="w-full rounded-md border px-3 py-2" value="1" />
+          </div>
+        </label>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mechanicals -->
+  <div class="step-card rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Mechanicals
+    </button>
+    <div class="px-4 pb-4 space-y-4" data-step-panel>
+      <div id="detailsPanel" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Finish -->
+  <div id="finishCard"
+      class="rounded-2xl border border-neutral-200 bg-white
+              dark:bg-neutral-900 dark:border-neutral-800">
+    <button type="button"
+            class="w-full step-header px-4 py-3 text-left font-medium"
+            data-step-toggle>
+      Finish
+    </button>
+
+    <div class="px-4 pb-4 space-y-3" data-step-panel>
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="inline-flex items-center gap-2">
+          <input id="wantPng" type="checkbox" class="rounded border" checked>
+          <span class="text-sm">PNG</span>
+        </label>
+
+        <label class="inline-flex items-center gap-2">
+          <input id="wantSvg" type="checkbox" class="rounded border" checked>
+          <span class="text-sm">SVG</span>
+        </label>
+
+        <button id="exportBtn" type="button"
+                class="ml-auto px-4 py-2 rounded-lg bg-black text-white text-sm">
+          Generate
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+  <!-- Emoji Modal -->
+  <div id="emojiModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
+      <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
+        <div class="text-sm font-medium">Pick an emoji</div>
+        <input id="emojiSearch" type="text" placeholder="Search…" class="ml-auto w-64 rounded-md border px-3 py-2 text-sm" />
+        <button id="emojiClose" class="ml-2 px-3 py-2 rounded-md border text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800">Close</button>
+      </div>
+      <div class="max-h-[60vh] overflow-auto p-4">
+        <div id="emojiGrid" class="grid emoji-grid gap-2"></div>
+      </div>
+    </div>
+  </div>
+
+<script src="./qr_app.js" defer></script>
+
+<script>
+  // Boot after both DOM and QRCode are ready
+  (function boot() {
+    let tries = 0, max = 80; // retry for ~4 seconds (80 × 50 ms)
+    function tick() {
+      if (window.QRCode && QRCode.CorrectLevel && typeof window.render === "function") {
+        render();
+        return;
+      }
+      if (++tries >= max) {
+        console.error("QR library never loaded; check vendor/qrcode.min.js");
+        return;
+      }
+      setTimeout(tick, 50);
+    }
+    tick();
+  })();
+</script>
+</body>
+</html>
+
+<script>
+  // Dark mode sync + toggle (unchanged)
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.classList.add('dark');
+  }
+  document.getElementById('themeToggle')?.addEventListener('click', () =>
+    document.documentElement.classList.toggle('dark')
+  );
+
+// Footer year
+const yearEl = document.getElementById('year');
+if (yearEl) {
+  yearEl.textContent = new Date().getFullYear();
+}
+
+</script>
+
+<!-- Emoji Modal -->
+<!-- (optional) tiny helper for the dim bg -->
+<style>
+  .modal-bg { background: rgba(0,0,0,.28); backdrop-filter: blur(2px); }
+</style>
+
+<!-- Emoji Modal (single instance) -->
+<div id="emojiModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4">
+  <div class="w-full max-w-3xl rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
+    <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
+      <div class="text-sm font-medium">Pick an emoji</div>
+      <button id="emojiClose" class="ml-auto px-3 py-2 rounded-md border text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800">
+        Close
+      </button>
+    </div>
+    <div class="max-h-[60vh] overflow-auto p-4">
+      <!-- This will be replaced by <emoji-picker> -->
+      <div id="emojiGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Your app code (keep this if you already have it) -->
+<script src="./qr_app.js" defer></script>
+
+<!-- Boot once both QRCode & render() are ready -->
+<script>
+  (function boot() {
+    let tries = 0, max = 80;
+    (function tick(){
+      if (window.QRCode && QRCode.CorrectLevel && typeof window.render === "function") { render(); return; }
+      if (++tries >= max) { console.error("QR library never loaded; check vendor/qrcode.min.js"); return; }
+      setTimeout(tick, 50);
+    })();
+  })();
+</script>
+
+<!-- Emoji picker wiring -->
+<script type="module">
+  import 'https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js';
+
+  const emojiModal  = document.getElementById('emojiModal');
+  const emojiClose  = document.getElementById('emojiClose');
+  let   emojiTarget = null;
+
+  function openEmoji(targetId) {
+    emojiTarget = document.getElementById(targetId) || null;
+    emojiModal.classList.remove('hidden');
+    queueMicrotask(() => document.querySelector('emoji-picker')?.focus());
+  }
+  function closeEmoji() {
+    emojiModal.classList.add('hidden');
+    emojiTarget = null;
+    if (typeof window.render === 'function') window.render();
+  }
+  window.openEmoji  = openEmoji;
+  window.closeEmoji = closeEmoji;
+
+  document.querySelectorAll('[data-emoji-target]')
+    .forEach(btn => btn.addEventListener('click', () => openEmoji(btn.getAttribute('data-emoji-target'))));
+  emojiClose?.addEventListener('click', closeEmoji);
+  emojiModal?.addEventListener('click', (e) => { if (e.target === emojiModal) closeEmoji(); });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !emojiModal.classList.contains('hidden')) closeEmoji(); });
+
+  // Insert picker and connect selection
+  const grid   = document.getElementById('emojiGrid');
+  const picker = document.createElement('emoji-picker');
+  picker.setAttribute('emojis-per-row', '10');
+  picker.setAttribute('skin-tone-emoji', '👍');
+  picker.style.width = '100%';
+  picker.style.maxHeight = '60vh';
+  picker.style.border = '0';
+
+  const applyPickerTheme = () => {
+    picker.setAttribute('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  };
+  applyPickerTheme();
+  document.getElementById('themeToggle')?.addEventListener('click', applyPickerTheme);
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', applyPickerTheme);
+
+  grid.replaceWith(picker);
+
+  picker.addEventListener('emoji-click', (e) => {
+    const char = e.detail.unicode;
+    if (emojiTarget) {
+      emojiTarget.value = char;
+      emojiTarget.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    closeEmoji();
+  });
+</script>
+</body>
+</html>
+
+</body>
+</html>

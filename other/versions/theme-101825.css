@@ -1,0 +1,290 @@
+:root {
+  /* Core palette */
+  --bg-from: #050505;
+  --bg-to:   #0C0C0F;
+  --text:    #EAEAEA;
+  --muted:   #a1a1aa;
+
+  /* Neon accents */
+  --accent-fuchsia: #8B5CF6;
+  --accent-cyan:    #14B8A6;
+
+  /* Glass / depth */
+  --card-bg: rgba(255,255,255,.06);
+  --card-border: rgba(255,255,255,.12);
+  --card-blur: 6px;
+  --card-shadow: 0 0 40px -10px var(--accent-fuchsia);
+
+  /* Grid / chrome */
+  --grid-size: 40px;
+  --grid-opacity: .1;
+
+  /* Controls */
+  --focus-ring: rgba(56,189,248,.7);
+  --radius-xl:  1.25rem;
+
+  /* Preview arrows */
+  --arrow-offset: 60px;
+  --arrow-size:   40px;
+  --arrow-glow:   0 0 10px var(--accent-fuchsia);
+}
+
+/* ---------- Global scaffold ---------- */
+body {
+  background: linear-gradient(135deg, var(--bg-from), var(--bg-to));
+  color: var(--text);
+}
+
+/* Subtle neon grid */
+.theme-grid::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; opacity:var(--grid-opacity);
+  background:
+    linear-gradient(to right, var(--accent-fuchsia) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--accent-fuchsia) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
+}
+
+/* Ensure the grid sits behind everything */
+.theme-grid {
+  position: relative;
+}
+
+.theme-grid::before {
+  z-index: 0;
+}
+
+.theme-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Frosted cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(var(--card-blur));
+  border-radius: var(--radius-xl);
+  box-shadow: var(--card-shadow);
+}
+
+/* Arrows */
+.nav-arrow {
+  width: var(--arrow-size);
+  height: var(--arrow-size);
+  box-shadow: var(--arrow-glow);
+}
+.nav-arrow.left  { left:  calc(-1 * var(--arrow-offset)); }
+.nav-arrow.right { right: calc(-1 * var(--arrow-offset)); }
+
+/* ---------- Preview layout ---------- */
+/* If you wrap the preview in .preview-stage, this keeps a portrait box. */
+.preview-stage{
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 2 / 3;
+  margin-inline: auto;
+  border-radius: var(--radius-xl);
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The actual preview container */
+#qrPreview{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-top: 3.5rem;         /* pt-14 space for caption row */
+  min-height: 420px;           /* ensures non-zero height for first render */
+  height: auto;
+  aspect-ratio: 2 / 3;
+  overflow: visible;
+  border-radius: var(--radius-xl);
+}
+
+/* Where the live SVG mounts */
+#qrMount{ flex:1 1 auto; min-height:260px; }
+
+/* Optional: basic arrow styling if Tailwind classes change */
+.nav-arrow{ outline:none; }
+
+/* ---------- Form controls: light & dark (authoritative) ---------- */
+/* Light */
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="search"],
+input[type="password"],
+input[type="color"],
+textarea,
+select {
+  background-color: rgb(255 255 255);
+  color: rgb(23 23 23);
+  border-color: rgb(212 212 212);
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+
+input::placeholder,
+textarea::placeholder { color: rgb(115 115 115); }
+
+/* Dark */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="url"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark input[type="password"],
+.dark input[type="color"],
+.dark textarea,
+.dark select {
+background-color: rgb(14, 10, 18);   /* deep purple ~10% brightness */
+color: rgb(240, 240, 245);           /* bright text */
+border-color: rgb(80, 60, 110);      /* desaturated purple */
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder { color: rgb(120 120 125); }
+
+/* Focus */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: rgb(59 130 246);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.20);
+}
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  border-color: rgb(147 197 253);
+  box-shadow: 0 0 0 2px rgba(147,197,253,.20);
+  background-color: rgb(30 30 33);
+}
+
+/* Muted/disabled helper */
+.field-muted, .field-muted * { opacity: .55; pointer-events: none; }
+
+/* Override preview aspect for device realism */
+#qrPreview {
+  aspect-ratio: 10 / 16 !important;
+}
+
+/* active/open card header treatment */
+.step-card.is-open > .step-header {
+  outline: 2px solid rgba(139,92,246,.35); /* subtle fuchsia ring */
+  background-color: rgba(139,92,246,.08);
+}
+/* ---------- Stepper scrolling + sticky Finish ---------- */
+
+/* default: Finish participates in normal flow */
+#finishCard { position: static; }
+
+/* Stepper needs a positioning context + a padding reserve */
+#stepper {
+  position: relative;
+  --finish-reserve: 0px;   /* JS will update this */
+}
+
+/* When any non-Caption panel is open, keep Finish parked/sticky */
+#stepper.panel-open { padding-bottom: var(--finish-reserve); }
+#stepper.panel-open #finishCard {
+  position: sticky;
+  bottom: 16px;            /* tweak to taste */
+  z-index: 5;
+}
+
+/* IMPORTANT: Finish must not clip the scroller above it */
+#finishCard { overflow: visible; }
+
+/* The open panel becomes a scroll frame (JS toggles .scroll-frame) */
+[data-step-panel].scroll-frame {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+/* nice scrollbars (Chrome/Edge/Safari) */
+[data-step-panel].scroll-frame::-webkit-scrollbar { width: 8px; }
+[data-step-panel].scroll-frame::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.25);
+  border-radius: 6px;
+}
+
+/* Subtle card/header highlight when a card is open */
+#stepper > div { transition: background-color .15s, border-color .15s; }
+#stepper .step-header { transition: background-color .15s, border-color .15s, color .15s; }
+
+#stepper > div.is-open .step-header {
+  /* header tint (soft purple glass, adjust as you like) */
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* (optional) tint the whole card body when open */
+#stepper > div.is-open {
+  background: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.18);
+}
+
+/* ---------- Panel scrolling + sticky Finish ---------- */
+
+/* default: Finish participates in normal flow */
+#finishCard { position: static; }
+
+/* when any panel other than Caption is open, park Finish */
+#stepper.panel-open #finishCard {
+  position: sticky;
+  bottom: 16px;            /* parking offset; tweak if you want */
+  z-index: 5;
+}
+
+/* Stepper needs a positioning context + a padding reserve */
+#stepper { 
+  position: relative;
+  --finish-reserve: 0px;
+}
+#stepper.panel-open { padding-bottom: var(--finish-reserve); }
+
+/* Finish parks at the bottom of the viewport when any non-Caption panel is open */
+#stepper.panel-open #finishCard {
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
+}
+
+/* IMPORTANT: the Finish card must NOT clip things that scroll above it */
+#finishCard { overflow: visible; }   /* remove/override overflow-hidden if present */
+
+/* The panel we open becomes a scroll frame when JS adds .scroll-frame */
+[data-step-panel].scroll-frame {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+[data-step-panel].scroll-frame::-webkit-scrollbar { width: 8px; }
+[data-step-panel].scroll-frame::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.25);
+  border-radius: 6px;
+}
+
+/* Each “card” is the outer <div> that wraps header + panel */
+#stepper > div { transition: background-color .15s, border-color .15s; }
+
+/* Default header/card look (already close to what you have) */
+#stepper .step-header {
+  transition: background-color .15s, border-color .15s, color .15s;
+}
+
+/* When a card is open, we tint its header (and optionally the card) */
+#stepper > div.is-open > .step-header {
+  /* pick your highlight – this is a subtle purple glass */
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+/* (optional) if you also want the whole card body tinted a bit */
+#stepper > div.is-open {
+  background: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.18);
+}
+

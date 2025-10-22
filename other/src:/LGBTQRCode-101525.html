@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LGBTQRCode – Prototype v7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{--card:255 255 255;--ink:23 23 23;--muted:115 115 115;--ring:229 229 229;}
+    body{font-family:"Work Sans",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue","Noto Sans",sans-serif;}
+    .nav-arrow{opacity:1;}
+    
+    .step-header{user-select:none;}
+    .step-header:hover{background-color:rgb(250 250 250);}
+    .modal-bg{background:rgba(0,0,0,.5);}
+    .emoji-grid{grid-template-columns:repeat(10,minmax(0,1fr));}
+    @media (max-width: 640px){ .emoji-grid{grid-template-columns:repeat(6,minmax(0,1fr));} }
+    .clicker{display:flex;align-items:center;gap:.25rem}
+    .clicker input[type="number"]{text-align:center}
+    .click-btn{width:2.25rem;height:2.25rem;border:1px solid rgb(212 212 212);border-radius:.5rem;line-height:1.9rem}
+    .click-btn:active{transform:scale(.98)}
+    .field-muted{opacity:.6;pointer-events:none}
+ 
+    /* ---- Form controls: light & dark ---- */
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    input[type="number"],
+    input[type="search"],
+    input[type="password"],
+    input[type="color"],
+    textarea,
+    select {
+      background-color: rgb(255 255 255);
+      color: rgb(23 23 23);
+      border-color: rgb(212 212 212);
+    }
+
+    input::placeholder,
+    textarea::placeholder { color: rgb(115 115 115); }
+
+    /* Dark mode */
+    .dark input[type="text"],
+    .dark input[type="email"],
+    .dark input[type="url"],
+    .dark input[type="number"],
+    .dark input[type="search"],
+    .dark input[type="password"],
+    .dark input[type="color"],
+    .dark textarea,
+    .dark select {
+      background-color: rgb(38 38 38);    /* ~neutral-800 */
+      color: rgb(245 245 245);            /* ~neutral-100 */
+      border-color: rgb(64 64 64);        /* ~neutral-700 */
+    }
+
+    /* Caption overlay styling */
+#campaignCaption{
+  font-size: clamp(22px, 2.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: .01em;
+  text-shadow: 0 1px 2px rgba(0,0,0,.35);
+}
+
+    .dark input::placeholder,
+    .dark textarea::placeholder { color: rgb(163 163 163); } /* ~neutral-400 */
+
+    /* Focus ring (both themes) */
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: rgb(59 130 246);            /* blue-500 */
+      box-shadow: 0 0 0 3px rgba(59,130,246,.25);
+    }
+    .dark input:focus, .dark textarea:focus, .dark select:focus {
+      border-color: rgb(147 197 253);           /* blue-300 */
+      box-shadow: 0 0 0 3px rgba(147,197,253,.25);
+    }
+
+    /* dark-mode hover fix */
+.dark .step-header:hover { 
+  background-color: rgb(38 38 38); 
+}
+ </style>
+</head>
+<body class="min-h-screen bg-neutral-100 text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100">
+  <!-- Header -->
+<header class="sticky top-0 z-30 bg-white border-b border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800">
+  <div class="mx-auto max-w-6xl px-4 py-3 flex items-center gap-4">
+    <h1 class="text-lg font-semibold tracking-tight">LGBTQRCode</h1>
+    <div class="ml-auto flex items-center gap-3">
+      <label class="text-sm">
+        <span class="sr-only">Type</span>
+        <select id="qrType" class="rounded-md border px-3 py-2 text-sm">
+          <option>URL</option>
+          <option>Payment</option>
+          <option>WiFi</option>
+          <option>Contact</option>
+          <option>Message</option>
+          <option>Event</option>
+          <option>Map</option>
+        </select>
+      </label>
+      <label class="text-sm">
+        <span class="sr-only">ECC</span>
+        <select id="ecc" class="rounded-md border px-3 py-2 text-sm">
+          <option>L</option>
+          <option selected>M</option>
+          <option>Q</option>
+          <option>H</option>
+        </select>
+      </label>
+
+  <!-- App menu -->
+  <div class="relative" id="appMenuWrap">
+    <button id="appMenuBtn"
+      class="px-3 py-2 rounded-md border text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800"
+      aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu">
+      Menu ▾
+    </button>
+
+    <!-- Dropdown menu -->
+    <div id="appMenu"
+        class="hidden absolute right-0 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-md
+                dark:bg-neutral-800 dark:border-neutral-700"
+        role="menu" aria-labelledby="appMenuBtn">
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="aboutApp">About this app</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="aboutQR">About QR Codes</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="privacy">Privacy</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="legal">Legal / Disclaimer</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+        role="menuitem" id="themeToggle">🌙 Toggle Dark Mode</button>        
+    </div>
+  </div>
+</header>
+<main class="mx-auto max-w-6xl px-4 py-6 grid gap-6 lg:grid-cols-2">
+<section class="lg:sticky lg:top-20 self-start">
+  <div class="relative w-full max-w-[560px] mx-auto bg-white rounded-2xl shadow-sm border border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800">
+    <!-- Square wrapper constrained by max-w -->
+    <div class="pt-[100%]"></div>
+
+<!-- Stage -->
+<div class="absolute inset-0 p-4 flex items-center justify-center">
+  <div class="absolute inset-0 rounded-2xl border border-neutral-300 bg-neutral-200/50"></div>
+  <div class="relative w-full h-full rounded-xl">
+    <!-- Card surface whose color we control via JS -->
+    <div id="qrPreview" class="w-full h-full rounded-xl flex flex-col items-center justify-start pt-10">
+  <div id="qrMount" class="flex-1 w-full flex items-start justify-center"></div>
+  <div id="campaignCaption" class="pb-4 text-center font-bold tracking-tight"></div>
+</div>
+
+      <!-- Caption lives inside the card, under the QR -->
+      <div id="campaignCaption"
+           class="pb-4 text-center font-bold tracking-tight text-neutral-700">
+      </div>
+    </div>
+  </div>     
+</section> 
+
+    <!-- left arrow -->
+    <button type="button" id="prevSubtype" aria-label="Previous style" aria-controls="qrPreview"
+            class="nav-arrow absolute left-2 top-1/2 -translate-y-1/2 rounded-full z-10
+                   bg-white/90 border border-neutral-200 w-9 h-9 grid place-items-center shadow-sm">
+      <span class="select-none">◀</span>
+    </button>
+
+    <!-- right arrow -->
+    <button type="button" id="nextSubtype" aria-label="Next style" aria-controls="qrPreview"
+            class="nav-arrow absolute right-2 top-1/2 -translate-y-1/2 rounded-full z-10
+                   bg-white/90 border border-neutral-200 w-9 h-9 grid place-items-center shadow-sm">
+      <span class="select-none">▶</span>
+    </button>
+  </div>
+</div>
+
+      <!-- RIGHT: Stepper (stacked, collapsible cards) -->
+<section id="stepper" class="space-y-4">
+
+  <!-- Caption -->
+  <div class="rounded-2xl border border-neutral-200 bg-white overflow-hidden dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Caption
+    </button>
+    <div class="px-4 pb-4 space-y-3" data-step-panel>
+      <label class="block text-sm">
+        <input id="campaign" type="text" class="w-full rounded-md border px-3 py-2" value="ENGAGE" />
+      </label>
+      <label class="inline-flex items-center gap-2">
+        <input id="showCaption" type="checkbox" class="rounded border" checked />
+        <span class="text-sm">Show caption under preview</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Design -->
+  <div class="rounded-2xl border border-neutral-200 bg-white overflow-hidden
+              dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Design
+    </button>
+    <div class="px-4 pb-4 space-y-4" data-step-panel>
+      <!-- Colors -->
+      <div class="grid gap-3 sm:grid-cols-2">
+        <!-- Body -->
+        <label class="text-sm">
+          <span class="block mb-1">Body</span>
+          <div class="flex items-center gap-2">
+            <input id="bodyColor" type="color" class="h-9 w-10 rounded-md border" value="#00da00" />
+            <input id="bodyColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Eye Ring -->
+        <label class="text-sm">
+          <span class="block mb-1">Eye Ring</span>
+          <div class="flex items-center gap-2">
+            <input id="eyeRingColor" type="color" class="h-9 w-10 rounded-md border" value="#ea20d2" />
+            <input id="eyeRingColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Eye Center -->
+        <label class="text-sm">
+          <span class="block mb-1">Eye Center</span>
+          <div class="flex items-center gap-2">
+            <input id="eyeCenterColor" type="color" class="h-9 w-10 rounded-md border" value="#ea033c" />
+            <input id="eyeCenterColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Caption Text -->
+        <label class="text-sm">
+          <span class="block mb-1">Caption Text</span>
+          <div class="flex items-center gap-2">
+            <input id="captionColor" type="color" class="h-9 w-10 rounded-md border" value="#000000" />
+            <input id="captionColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+        </label>
+
+        <!-- Background (spans both columns) -->
+        <div class="sm:col-span-2 grid grid-cols-[auto,1fr,auto] items-center gap-3">
+          <span class="text-sm">Background</span>
+          <div class="flex items-center gap-2">
+            <input id="bgColor" type="color" class="h-9 w-10 rounded-md border" value="#ffffff" />
+            <input id="bgColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
+          </div>
+          <label class="inline-flex items-center gap-2">
+            <input id="bgTransparent" type="checkbox" class="rounded border" />
+            <span class="text-sm">Transparent</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Shapes -->
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="text-sm">
+          <span class="block mb-1">Modules</span>
+          <select id="moduleShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="block mb-1">Eye Ring</span>
+          <select id="eyeRingShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+        <label class="text-sm">
+          <span class="block mb-1">Eye Center</span>
+          <select id="eyeCenterShape" class="w-full rounded-md border px-3 py-2">
+            <option>Square</option><option>Rounded</option><option>Circle</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Module fill -->
+      <div class="grid gap-3 sm:grid-cols-3">
+        <label class="text-sm">
+          <span class="block mb-1">Module Fill</span>
+          <select id="modulesMode" class="w-full rounded-md border px-3 py-2">
+            <option>Shape</option><option>Emoji</option>
+          </select>
+        </label>
+        <label class="text-sm" id="modulesEmojiWrap">
+          <span class="block mb-1">Emoji</span>
+          <div class="flex gap-2">
+            <input id="modulesEmoji" type="text" class="w-full rounded-md border px-3 py-2" value="😀" />
+            <button type="button" data-emoji-target="modulesEmoji" class="px-3 py-2 text-sm rounded-md border hover:bg-neutral-50">Pick…</button>
+          </div>
+        </label>
+        <label class="text-sm" id="modulesScaleWrap">
+          <span class="block mb-1">Scale</span>
+          <div class="clicker">
+            <button type="button" class="click-btn rounded-md" data-stepper="modulesScale" data-delta="-0.05">−</button>
+            <input id="modulesScale" type="number" step="0.05" min="0.1" max="1" class="w-full rounded-md border px-3 py-2" value="0.9" />
+            <button type="button" class="click-btn rounded-md" data-stepper="modulesScale" data-delta="0.05">+</button>
+          </div>
+        </label>
+      </div>
+
+      <!-- Center content -->
+      <div class="grid gap-3 sm:grid-cols-3 items-start">
+        <label class="text-sm">
+          <span class="block mb-1">Center content</span>
+          <select id="centerMode" class="w-full rounded-md border px-3 py-2">
+            <option>None</option>
+            <option>Blank</option>
+            <option>Emoji</option>
+          </select>
+        </label>
+        <label class="text-sm" id="centerEmojiWrap">
+          <span class="block mb-1">Emoji</span>
+          <div class="flex gap-2">
+            <input id="centerEmoji" type="text" class="w-full rounded-md border px-3 py-2" value="😊" />
+            <button type="button" data-emoji-target="centerEmoji" class="px-3 py-2 text-sm rounded-md border hover:bg-neutral-50">Pick…</button>
+          </div>
+        </label>
+        <label class="text-sm" id="centerScaleWrap">
+          <span class="block mb-1">Scale</span>
+          <div class="clicker">
+            <button type="button" class="click-btn rounded-md" data-stepper="centerScale" data-delta="-0.05">−</button>
+            <input id="centerScale" type="number" step="0.05" min="0.1" max="1" class="w-full rounded-md border px-3 py-2" value="0.9" />
+            <button type="button" class="click-btn rounded-md" data-stepper="centerScale" data-delta="0.05">+</button>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mechanicals -->
+  <div class="rounded-2xl border border-neutral-200 bg-white overflow-hidden
+              dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Mechanicals
+    </button>
+    <div class="px-4 pb-4 space-y-4" data-step-panel>
+      <div id="detailsPanel" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Finish -->
+  <div class="rounded-2xl border border-neutral-200 bg-white overflow-hidden
+              dark:bg-neutral-900 dark:border-neutral-800">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Finish
+    </button>
+    <div class="px-4 pb-4 space-y-3" data-step-panel>
+      <div class="flex flex-wrap items-center gap-3">
+        <label class="inline-flex items-center gap-2">
+          <input id="wantPng" type="checkbox" checked class="rounded border" /> <span class="text-sm">PNG</span>
+        </label>
+        <label class="inline-flex items-center gap-2">
+          <input id="wantSvg" type="checkbox" checked class="rounded border" /> <span class="text-sm">SVG</span>
+        </label>
+        <button class="ml-auto px-4 py-2 rounded-lg bg-black text-white text-sm">Generate</button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+</main>
+
+  <!-- Emoji Modal -->
+  <div id="emojiModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
+      <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
+        <div class="text-sm font-medium">Pick an emoji</div>
+        <input id="emojiSearch" type="text" placeholder="Search…" class="ml-auto w-64 rounded-md border px-3 py-2 text-sm" />
+        <button id="emojiClose" class="ml-2 px-3 py-2 rounded-md border text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800">Close</button>
+      </div>
+      <div class="max-h-[60vh] overflow-auto p-4">
+        <div id="emojiGrid" class="grid emoji-grid gap-2"></div>
+      </div>
+    </div>
+  </div>
+
+<!-- QR library (browser global 'QRCode') -->
+<script src="vendor/qrcode.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Sync with system preference on load
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+
+    // Add listener to toggle manually via menu later
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+    }
+  });
+  </script>
+  <script>
+    // -------- Stepper (open one at a time & dblclick advances) --------
+    const stepper = document.getElementById('stepper');
+    const headers = [...stepper.querySelectorAll('[data-step-toggle]')];
+    const panels  = [...stepper.querySelectorAll('[data-step-panel]')];
+    function openOnly(idx){ panels.forEach((p,i)=>{ p.style.display = (i===idx)?'block':'none'; }); }
+    headers.forEach((h,i)=>{
+      h.addEventListener('click', ()=> openOnly(i));
+      h.addEventListener('dblclick', ()=> openOnly((i+1)%panels.length));
+    });
+    openOnly(0);
+
+    // -------- Caption sync & color --------
+    const capInput = document.getElementById('campaign');
+    const capShow  = document.getElementById('showCaption');
+    const capNode  = document.getElementById('campaignCaption');
+    function syncCap(){
+      const text = capInput.value?.trim() || 'ENGAGE';
+      capNode.textContent = capShow.checked ? text : '';
+    }
+    capInput.addEventListener('input', syncCap);
+    capShow.addEventListener('change', syncCap);
+    syncCap(); // initialize on load
+    document.getElementById('captionColor').addEventListener('input', e=>{ capNode.style.color=e.target.value; });
+    syncCap();
+
+    // -------- Emoji picker (catalog + search) --------
+    const EMOJI_BIG = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","🙂","🙃","☺️","😋","😌","😍","🥰","😘","😗","😙","😚","😜","🤪","😝","😛","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😶‍🌫️","😏","😒","🙄","😬","🤥","😴","😪","😮‍💨","😌","😮","😯","😲","😳","🥵","🥶","😱","😨","😰","😥","😢","😭","😤","😡","😠","🤬","🤯","😷","🤒","🤕","🤢","🤮","🤧","🥴","😵","😵‍💫","🤠","🥳","😎","🤓","🧐","😕","🫤","😟","🙁","☹️","🤷","🤷‍♂️","🤷‍♀️","💪","👋","🤝","👍","👎","👏","🙌","👐","🤲","🤟","✌️","🤘","👌","🤌","🤏","👈","👉","☝️","👆","👇","✋","🖐️","🖖","✊","👊","💋","❤️","🩷","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","🌈","🏳️‍🌈","🏳️‍⚧️","⭐️","✨","🔥","⚡️","💥","🌟","☀️","🌙","🪐","🌍","🌎","🌏","🌊","⛰️","🏙️","🗽","🚗","✈️","🚀","⌚️","📱","💻","🖥️","🖨️","🎧","🎤","🎬","📷","📸","📝","📚","🔖","📎","🔬","🔧","⚙️","🍎","🍉","🍇","🍓","🍑","🍍","🥑","🌮","🍣","🍰","🍫","🍩","🍿","🍺","🍷","🍸","🎉","🎊","🎈","🎮","🎯","🏆","🏵️","✊🏿","✊🏾","✊🏽","✊🏼","✊🏻","👍🏿","👍🏾","👍🏽","👍🏼","👍🏻","👋🏿","👋🏾","👋🏽","👋🏼","👋🏻","🏁","🚩","🏳️","🏴","🏳️‍🌈","🏳️‍⚧️","🇺🇸","🇨🇦","🇬🇧","🇫🇷","🇩🇪","🇮🇹","🇪🇸","🇧🇷","🇯🇵","🇰🇷","🇨🇳","🇮🇳","🇿🇦"];
+    const emojiModal = document.getElementById('emojiModal');
+    const emojiGrid  = document.getElementById('emojiGrid');
+    const emojiSearch= document.getElementById('emojiSearch');
+    const emojiClose = document.getElementById('emojiClose');
+    let emojiTarget  = null;
+    function openEmoji(targetId){ emojiTarget = document.getElementById(targetId); emojiSearch.value=''; renderEmojiGrid(''); emojiModal.classList.remove('hidden'); emojiSearch.focus(); }
+    function closeEmoji(){ emojiModal.classList.add('hidden'); emojiTarget=null; }
+    function renderEmojiGrid(q){ const norm=q.trim().toLowerCase(); emojiGrid.innerHTML=''; EMOJI_BIG.filter(e => !norm || e.toLowerCase().includes(norm)).forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.className='h-9 text-lg rounded-md border hover:bg-neutral-50'; b.textContent=e; b.addEventListener('click', ()=>{ if(emojiTarget){ emojiTarget.value=e; } closeEmoji(); }); emojiGrid.appendChild(b); }); }
+    document.querySelectorAll('[data-emoji-target]').forEach(btn=> btn.addEventListener('click', ()=> openEmoji(btn.getAttribute('data-emoji-target'))));
+    emojiSearch.addEventListener('input', ()=> renderEmojiGrid(emojiSearch.value));
+    emojiClose.addEventListener('click', closeEmoji);
+    emojiModal.addEventListener('click', (e)=>{ if(e.target===emojiModal) closeEmoji(); });
+
+    // -------- Scale clickers --------
+    function clamp(val,min,max){ return Math.min(max,Math.max(min,val)); }
+    document.querySelectorAll('[data-stepper]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const targetId = btn.getAttribute('data-stepper');
+        const delta = parseFloat(btn.getAttribute('data-delta')||'0');
+        const input = document.getElementById(targetId);
+        const v = parseFloat(input.value||'0') || 0;
+        const step = parseFloat(input.step||'0.05') || 0.05;
+        const min = parseFloat(input.min||'0.1') || 0.1;
+        const max = parseFloat(input.max||'1') || 1;
+        const next = clamp((Math.round((v + (delta||step))*100)/100), min, max);
+        input.value = next.toFixed(2);
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+    });
+
+    // -------- Bundled center mode → enable/disable fields --------
+    const centerMode = document.getElementById('centerMode');
+    const centerEmojiWrap = document.getElementById('centerEmojiWrap');
+    const centerScaleWrap = document.getElementById('centerScaleWrap');
+    function refreshCenter(){
+      const m = centerMode.value;
+      const disable = (m === 'None');
+      centerEmojiWrap.classList.toggle('field-muted', m !== 'Emoji');
+      centerScaleWrap.classList.toggle('field-muted', m === 'None');
+    }
+    centerMode.addEventListener('change', refreshCenter);
+    refreshCenter();
+
+    // -------- Message mechanics (Resistbot preset) --------
+    const msgMode = document.getElementById('msgMode');
+    const smsNumber = document.getElementById('smsNumber');
+    const smsText = document.getElementById('smsText');
+    let personalNumber = '';
+    function applyResistbot(){
+      if(smsNumber.value && smsNumber.value !== '50409'){ personalNumber = smsNumber.value; }
+      smsNumber.value = '50409';
+      if(!smsText.value){ smsText.value = 'RESIST'; }
+      smsNumber.setAttribute('disabled','disabled');
+    }
+    function restorePersonalIfNeeded(){
+      if(!smsNumber) return;
+      smsNumber.removeAttribute('disabled');
+      if(smsNumber.value==='50409'){ smsNumber.value = personalNumber; }
+    }
+    if(msgMode){
+      msgMode.addEventListener('change', ()=>{
+        if(msgMode.value === 'Resistbot'){ applyResistbot(); }
+        else { restorePersonalIfNeeded(); }
+      });
+    }
+
+    // -------- Preview arrows (no-op placeholders) --------
+    document.getElementById('prevSubtype').addEventListener('click', ()=>{});
+    document.getElementById('nextSubtype').addEventListener('click', ()=>{});
+  
+    // -------- Color HEX sync --------
+    function toHex(v){ v = (v||'').trim(); if(/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase(); return null; }
+    function bindHexSync(colorId){
+      const col = document.getElementById(colorId);
+      const hex = document.getElementById(colorId+'Hex');
+      if(!col || !hex) return;
+      // init
+      hex.value = (col.value||'').toUpperCase();
+      col.addEventListener('input', ()=>{ hex.value = (col.value||'').toUpperCase(); });
+      hex.addEventListener('input', ()=>{
+        const v = toHex(hex.value);
+        if(v){ col.value = v; col.dispatchEvent(new Event('input',{bubbles:true})); }
+      });
+    }
+    ['bodyColor','eyeRingColor','eyeCenterColor','captionColor','bgColor'].forEach(bindHexSync);
+
+    // Transparent BG disables bgColorHex input
+    const bgT = document.getElementById('bgTransparent');
+    const bgH = document.getElementById('bgColorHex');
+    if(bgT && bgH){
+      function refreshBgHex(){ bgH.toggleAttribute('disabled', bgT.checked); bgH.classList.toggle('field-muted', bgT.checked); }
+      bgT.addEventListener('change', refreshBgHex); refreshBgHex();
+    }
+
+    // -------- Module Fill gating (Scale always active) --------
+    const modulesMode = document.getElementById('modulesMode');
+    const modulesEmojiWrap = document.getElementById('modulesEmojiWrap');
+    const modulesScaleWrap = document.getElementById('modulesScaleWrap');
+    function refreshModulesMode(){
+      const usingEmoji = modulesMode.value === 'Emoji';
+      // Only disable the emoji picker when not using emoji fill
+      modulesEmojiWrap.classList.toggle('field-muted', !usingEmoji);
+      // Keep scale control always active
+      modulesScaleWrap.classList.remove('field-muted');
+    }
+if (modulesMode) {
+  modulesMode.addEventListener('change', refreshModulesMode);
+  refreshModulesMode();
+}
+</script>
+<script>
+(async function(){
+
+  // --- Load manifest (with inline fallback) ---
+  let manifest;
+  try {
+    const res = await fetch('qr_type_manifest.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('manifest not found');
+    manifest = await res.json();
+  } catch (e) {
+    // Fallback to a baked-in copy (keeps UI working if fetch fails)
+    manifest = {
+      "URL": ["urlData"],
+      "Payment": ["payMode","payUser","payLink","payAmount","payNote"],
+      "WiFi": ["wifiSsid","wifiPwd","wifiSec","wifiHidden"],
+      "Contact": [
+        "vFirst","vLast","vOrg","vTitle",
+        "vPhone1","vPhone1Type","vPhone2","vPhone2Type",
+        "vEmail1","vEmail1Type","vEmail2","vEmail2Type",
+        "vWebsite","vBday","vStreet","vCity","vRegion","vPostal","vCountry","vNote"
+      ],
+      "Message": ["msgMode","smsNumber","smsText"],
+      "Event": ["evtTitle","evtStart","evtEnd","evtLoc","evtDet","evtStyle"],
+      "Map": ["mapQuery","mapLat","mapLng","mapProvider"]
+    };
+  }
+
+  // --- Field metadata (labels, input types, options, placeholders) ---
+  const FIELD_META = {
+    // URL
+    urlData:      {label:'URL',        type:'text',    placeholder:'Your URL Here'},
+
+    // Payment
+    payMode:      {label:'Mode',       type:'select',  options:['Generic Link','Stripe Payment Link','PayPal.me','Venmo','Cash App']},
+    payUser:      {label:'Username / Handle', type:'text', placeholder:'@name or $cashtag'},
+    payLink:      {label:'Direct Link', type:'text',  placeholder:'https://…'},
+    payAmount:    {label:'Amount',     type:'number',  step:'0.01', placeholder:'Optional'},
+    payNote:      {label:'Note',       type:'text',    placeholder:'Optional'},
+
+    // WiFi
+    wifiSsid:     {label:'SSID',       type:'text'},
+    wifiPwd:      {label:'Password',   type:'text'},
+    wifiSec:      {label:'Security',   type:'select',  options:['WPA','WEP','nopass']},
+    wifiHidden:   {label:'Hidden network', type:'checkbox'},
+
+    // Contact
+    vFirst:       {label:'First',      type:'text'},
+    vLast:        {label:'Last',       type:'text'},
+    vOrg:         {label:'Org',        type:'text'},
+    vTitle:       {label:'Title',      type:'text'},
+    vPhone1:      {label:'Phone 1',    type:'text'},
+    vPhone1Type:  {label:'Type',       type:'select',  options:['CELL','WORK','HOME','MAIN']},
+    vPhone2:      {label:'Phone 2',    type:'text'},
+    vPhone2Type:  {label:'Type',       type:'select',  options:['WORK','HOME','CELL','MAIN']},
+    vEmail1:      {label:'Email 1',    type:'email'},
+    vEmail1Type:  {label:'Type',       type:'select',  options:['INTERNET','WORK','HOME']},
+    vEmail2:      {label:'Email 2',    type:'email'},
+    vEmail2Type:  {label:'Type',       type:'select',  options:['WORK','HOME','INTERNET']},
+    vWebsite:     {label:'Website',    type:'url'},
+    vBday:        {label:'Birthday',   type:'text',    placeholder:'YYYY-MM-DD'},
+    vStreet:      {label:'Street',     type:'text'},
+    vCity:        {label:'City',       type:'text'},
+    vRegion:      {label:'State/Region', type:'text'},
+    vPostal:      {label:'Postal',     type:'text'},
+    vCountry:     {label:'Country',    type:'text'},
+    vNote:        {label:'Notes',      type:'textarea', rows:2},
+
+    // Message
+    msgMode:      {label:'Mode',       type:'select',  options:['Personal','Resistbot']},
+    smsNumber:    {label:'Phone #',    type:'text'},
+    smsText:      {label:'Message',    type:'text'},
+
+    // Event
+    evtTitle:     {label:'Title',      type:'text'},
+    evtStart:     {label:'Starts (UTC)', type:'text',  placeholder:'YYYY-MM-DD HH:MM:SS'},
+    evtEnd:       {label:'Ends (UTC)',   type:'text',  placeholder:'YYYY-MM-DD HH:MM:SS'},
+    evtLoc:       {label:'Location',   type:'text'},
+    evtDet:       {label:'Details',    type:'text'},
+    evtStyle:     {label:'Link style', type:'select',  options:['Google Calendar','Hosted .ics (embedded)']},
+
+    // Map
+    mapQuery:     {label:'Query / Address', type:'text'},
+    mapLat:       {label:'Lat',        type:'text'},
+    mapLng:       {label:'Lng',        type:'text'},
+    mapProvider:  {label:'Provider',   type:'select',  options:['Google','Apple','geo']}
+  };
+
+  // --- helpers to create inputs ---
+  function el(tag, props={}, children=[]){
+    const n = document.createElement(tag);
+    Object.entries(props).forEach(([k,v])=>{
+      if(k==='class') n.className = v;
+      else if(k==='text') n.textContent = v;
+      else if(k==='html') n.innerHTML = v;
+      else if(v!==undefined && v!==null) n.setAttribute(k, v);
+    });
+    (Array.isArray(children)?children:[children]).forEach(c => { if(c) n.appendChild(c); });
+    return n;
+  }
+
+  function buildField(id){
+    const meta = FIELD_META[id];
+    if(!meta){ return null; }
+    const wrap = el('label', {class:'text-sm block'});
+    const title = el('span', {class:'block mb-1', text: meta.label});
+    let input;
+
+    if(meta.type === 'select'){
+      input = el('select', {id: id, class:'w-full rounded-md border px-3 py-2'});
+      (meta.options||[]).forEach(opt => input.appendChild(el('option', {text: opt})));
+    } else if(meta.type === 'checkbox'){
+      // Inline checkbox layout
+      const row = el('label', {class:'inline-flex items-center gap-2'});
+      const cb  = el('input', {id:id, type:'checkbox', class:'rounded border'});
+      row.appendChild(cb);
+      row.appendChild(el('span', {class:'text-sm', text: meta.label}));
+      return row; // checkbox returns its own row and skips "title"
+    } else if(meta.type === 'textarea'){
+      input = el('textarea', {id:id, rows: String(meta.rows||2), class:'w-full rounded-md border px-3 py-2'});
+      if(meta.placeholder) input.setAttribute('placeholder', meta.placeholder);
+    } else {
+      // text / email / number / url
+      input = el('input', {id:id, type: meta.type||'text', class:'w-full rounded-md border px-3 py-2'});
+      if(meta.placeholder) input.setAttribute('placeholder', meta.placeholder);
+      if(meta.step)        input.setAttribute('step', meta.step);
+    }
+
+    wrap.appendChild(title);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  // --- render the form for a given Type ---
+  const typeSel = document.getElementById('qrType');
+  const details = document.getElementById('detailsPanel');
+
+  function renderTypeForm(type){
+    details.innerHTML = '';
+    const ids = manifest[type] || [];
+    console.log('renderTypeForm:', type, ids); 
+    // Grouping examples (optional): you can add small grids per type
+    // For now we render in a single flow; WiFi & Contact look nicer grouped:
+    const frag = document.createDocumentFragment();
+
+    // Simple heuristic grouping for prettier layout
+    const grid = el('div', {class:'grid gap-3'});
+    ids.forEach(fid => {
+      grid.appendChild(buildField(fid));
+    });
+    frag.appendChild(grid);
+    details.appendChild(frag);
+
+    // Wire type-specific behaviors that existed before:
+
+    // Payment: toggle user vs link by mode
+    const payMode = document.getElementById('payMode');
+    const payUser = document.getElementById('payUser');
+    const payLink = document.getElementById('payLink');
+    function refreshPaymentMode(){
+      if(!payMode) return;
+      const m = payMode.value;
+      const needsLink = (m==='Generic Link' || m==='Stripe Payment Link');
+      if(payLink){ payLink.closest('label').style.display = needsLink ? 'block' : 'none'; }
+      if(payUser){ payUser.closest('label').style.display = needsLink ? 'none'  : 'block'; }
+    }
+    if(payMode){
+      payMode.addEventListener('change', refreshPaymentMode);
+      refreshPaymentMode();
+    }
+
+    // Message: Resistbot preset
+    const msgMode = document.getElementById('msgMode');
+    const smsNumber = document.getElementById('smsNumber');
+    const smsText = document.getElementById('smsText');
+    let personalNumber = '';
+    function applyResistbot(){
+      if(smsNumber && smsNumber.value && smsNumber.value !== '50409'){ personalNumber = smsNumber.value; }
+      if(smsNumber){ smsNumber.value = '50409'; smsNumber.setAttribute('disabled','disabled'); }
+      if(smsText && !smsText.value){ smsText.value = 'RESIST'; }
+    }
+    function restorePersonalIfNeeded(){
+      if(!smsNumber) return;
+      smsNumber.removeAttribute('disabled');
+      if(smsNumber.value==='50409'){ smsNumber.value = personalNumber; }
+    }
+    if(msgMode){
+      msgMode.addEventListener('change', ()=>{
+        if(msgMode.value === 'Resistbot'){ applyResistbot(); }
+        else { restorePersonalIfNeeded(); }
+      });
+    }
+  }
+
+  // Initial render + on change
+  renderTypeForm(typeSel.value);
+  typeSel.addEventListener('change', ()=> renderTypeForm(typeSel.value));
+
+})();
+</script>   
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // expose to the later script
+  window.$ = $;
+  window.preview = $("qrPreview");
+  window.typeSel = $("qrType");
+
+  window.colorHex = function (id, fallback) {
+    const node = $(id);
+    const v = (node && node.value || "").trim();
+    return /^#[0-9a-fA-F]{6}$/.test(v) ? v : (fallback || "#000000");
+  };
+
+  window.val = function (id) {
+    const n = $(id);
+    return n ? (n.type === "checkbox" ? n.checked : (n.value || "")) : "";
+  };
+})();
+</script>
+<script>
+  // --- Build QR "text" for each Type (simple, pragmatic encoders for preview) ---
+  function buildText(){
+    const t = typeSel.value;
+    switch(t){
+      case "URL": {
+        const u = val("urlData") || "https://example.org";
+        return u;
+      }
+      case "Payment": {
+        const mode = val("payMode");
+        const user = val("payUser");
+        const link = val("payLink");
+        const amt  = val("payAmount");
+        const note = val("payNote");
+        const q = new URLSearchParams();
+        if(amt) q.set("amount", amt);
+        if(note) q.set("note", note);
+
+        if(mode==="Generic Link" || mode==="Stripe Payment Link"){
+          return link || "https://pay.example.com/your-link";
+        }
+        if(mode==="PayPal.me"){
+          return `https://paypal.me/${(user||"yourname").replace(/^@/,"")}${amt?"/"+amt:""}`;
+        }
+        if(mode==="Venmo"){
+          // venmo:// is not universally supported in scanners; https fallback:
+          const u = (user||"yourname").replace(/^@/,"");
+          return q.toString()
+            ? `https://venmo.com/${u}?${q.toString()}`
+            : `https://venmo.com/${u}`;
+        }
+        if(mode==="Cash App"){
+          const u = (user||"$yourname");
+          return q.toString()
+            ? `https://cash.app/${u.replace(/^\$/,"$")}?${q.toString()}`
+            : `https://cash.app/${u.replace(/^\$/,"$")}`;
+        }
+        return link || "https://example.org/pay";
+      }
+      case "WiFi": {
+        const ssid = val("wifiSsid");
+        const pwd  = val("wifiPwd");
+        const sec  = val("wifiSec") || "WPA";
+        const hid  = $("wifiHidden")?.checked ? "true" : "false";
+        // WIFI:T:WPA;S:mynetwork;P:mypass;H:true;;
+        return `WIFI:T:${sec};S:${ssid};P:${pwd};H:${hid};;`;
+      }
+      case "Contact": {
+        // Minimal vCard 3.0 (keeps preview simple)
+        const first = val("vFirst"), last = val("vLast");
+        const org   = val("vOrg"),   title= val("vTitle");
+        const phone = val("vPhone1"), email= val("vEmail1");
+        return [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          `N:${last||""};${first||""};;;`,
+          `FN:${[first,last].filter(Boolean).join(" ")}`,
+          org ? `ORG:${org}` : "",
+          title ? `TITLE:${title}` : "",
+          phone ? `TEL;TYPE=CELL:${phone}` : "",
+          email ? `EMAIL;TYPE=INTERNET:${email}` : "",
+          "END:VCARD"
+        ].filter(Boolean).join("\n");
+      }
+      case "Message": {
+        const num = val("smsNumber") || "5551234567";
+        const txt = encodeURIComponent(val("smsText") || "Hello");
+        // SMS URI (broadly supported): sms:+15551234567?&body=Hello
+        return `sms:${num}?&body=${txt}`;
+      }
+      case "Event": {
+        // Very light VEVENT for preview
+        const title = val("evtTitle") || "Event";
+        const start = (val("evtStart") || "2025-10-16 12:00:00").replace(/[-: ]/g,"").slice(0,14)+"Z";
+        const end   = (val("evtEnd")   || "2025-10-16 13:00:00").replace(/[-: ]/g,"").slice(0,14)+"Z";
+        const loc   = val("evtLoc") || "";
+        const det   = val("evtDet") || "";
+        return [
+          "BEGIN:VCALENDAR",
+          "VERSION:2.0",
+          "BEGIN:VEVENT",
+          `SUMMARY:${title}`,
+          `DTSTART:${start}`,
+          `DTEND:${end}`,
+          loc ? `LOCATION:${loc}` : "",
+          det ? `DESCRIPTION:${det}` : "",
+          "END:VEVENT",
+          "END:VCALENDAR"
+        ].filter(Boolean).join("\n");
+      }
+      case "Map": {
+        const q   = val("mapQuery");
+        const lat = val("mapLat");
+        const lng = val("mapLng");
+        const prov= val("mapProvider");
+        if(lat && lng){
+          if(prov==="geo"){ return `geo:${lat},${lng}`; }
+          // default to Google maps link
+          return `https://maps.google.com/?q=${lat},${lng}`;
+        }
+        return q ? `https://maps.google.com/?q=${encodeURIComponent(q)}` : "https://maps.google.com";
+      }
+      default:
+        return "LGBTQRCode";
+    }
+  }
+
+
+  // --- Draw into #qrMount using qrcode.js ---
+  let qr; // instance
+  function render() {
+    const preview = document.getElementById('qrPreview');
+    const mount   = document.getElementById('qrMount');
+    const capNode = document.getElementById('campaignCaption');
+
+    // Clear only the QR area, not the entire preview
+    if (mount) mount.innerHTML = '';
+
+    // Colors
+    const dark = colorHex('bodyColor', '#000000');
+
+    // Background — always use the user's BG color unless Transparent is checked
+    const bg = (document.getElementById('bgTransparent')?.checked)
+      ? 'transparent'
+      : colorHex('bgColor', '#FFFFFF');
+    if (preview) preview.style.background = bg;
+
+    // Compute size AFTER layout; if not ready, try next frame
+    const stageSize = Math.min(preview.clientWidth, preview.clientHeight);
+    if (!stageSize || stageSize < 16) {
+      requestAnimationFrame(render);
+      return;
+    }
+
+    // Scale the QR inside the stage
+    const SCALE = 0.45;
+    const inner = Math.max(16, Math.floor(stageSize * SCALE));
+
+    // --- Create QR (qrcodejs 1.0.0 constructor API) ---
+ new QRCode(mount, {
+  text: buildText(),
+  width:  inner,
+  height: inner,
+  colorDark:  dark,
+  colorLight: bg,        // was "#FFFFFF"
+  correctLevel: (QRCode && QRCode.CorrectLevel)
+    ? QRCode.CorrectLevel[(document.getElementById('ecc')?.value || 'M')]
+    : QRCode.CorrectLevel.L
+});
+
+    // --- Caption beneath preview ---
+    const showCap = document.getElementById('showCaption')?.checked;
+    if (capNode) {
+      capNode.textContent = showCap ? (val('campaign') || 'ENGAGE') : '';
+      capNode.style.color = colorHex('captionColor', '#000000');
+      capNode.style.background = 'transparent';
+    }
+  }
+
+  // --- Re-render on basically any input change in the UI
+  document.addEventListener("input", (e)=> {
+    // reflow after small debounce for number steppers/color pickers
+    clearTimeout(render._t);
+    render._t = setTimeout(render, 30);
+  });
+  document.addEventListener("change", ()=> render());
+  window.addEventListener("resize", ()=> render());
+  typeSel.addEventListener("change", ()=> setTimeout(render,0));
+
+// ------------------------------------------------------------
+// SAFE BOOT: wait for QRCode to load, then render once ready
+// ------------------------------------------------------------
+(function boot(){
+  if (window.QRCode && QRCode.CorrectLevel) {
+    console.log("🚀 QRCode ready — rendering");
+    render();
+  } else {
+    console.log("⏳ Waiting for QRCode...");
+    setTimeout(boot, 50);
+  }
+})();
+
+</script>
+
+<footer class="mt-10 border-t border-neutral-200 dark:border-neutral-800 text-center text-sm py-6 text-neutral-600 dark:text-neutral-400">
+  <p>© <span id="year"></span> LGBTQRCode by Jacob Euguene Henderson. All rights reserved.</p>
+</footer>
+
+<script>
+  // auto-update the year
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
