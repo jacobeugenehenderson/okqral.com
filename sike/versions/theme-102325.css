@@ -1,0 +1,1030 @@
+/* =======================================================================
+   LGBTQRCODE — THEME.CSS
+   Master style sheet controlling UI variables, theming, and component look.
+   Author: Jacob Eugene Henderson
+   -----------------------------------------------------------------------
+   STRUCTURE OVERVIEW
+   -----------------------------------------------------------------------
+   1.  CONTROL PANEL — BASE (dark mode default)
+         • Global design tokens and CSS variables (color, radii, density, motion)
+         • Defines reusable Material-inspired system values (md-sys-color-* etc.)
+   2.  GLOBAL SCAFFOLD
+         • Body background gradients, theme grid overlay, layout padding
+   3.  CARDS / SURFACES
+         • Card containers, elevation shadows, stepper highlights
+   4.  CONTROLS
+         • Inputs, selects, buttons, and top-bar menu items
+         • Includes hover/focus, emoji picker, and color-chip definitions
+   5.  PREVIEW LAYOUT
+         • QR preview area, SVG mount, transparent-frame styling
+   6.  ARROWS
+         • Navigation arrows for QR subtype switching
+   7.  FOOTER
+         • Fixed footer gradient bar and copyright text
+   8.  THEME MODES
+         • :root.light, :root.hc, and reduced-motion overrides
+   9.  UTILITIES / OVERRIDES (sandbox)
+         • Temporary tweaks, experimental features, or future controls
+   -----------------------------------------------------------------------
+   NOTES
+   -----------------------------------------------------------------------
+   • Variables follow Material Design token conventions where possible.
+   • All custom properties begin with `--md-sys-`, `--ui-`, or `--qr-` prefixes.
+   • JS can read certain variables via `getComputedStyle()` (e.g., --export-*).
+   • To add new features, prefer creating new tokens at the top-level :root.
+   • For experiments or nonstandard styling, append at the bottom section (9).
+   ======================================================================= */
+
+/* =========================
+   1. CONTROL PANEL — BASE (dark by default)
+========================= */
+/* Ensure both selector styles respond to the same classes */
+html.dark { color-scheme: dark; }
+html.light { color-scheme: light; }
+
+/* Mirror tokens whether the class is on <html> (html.light) or :root.light */
+html.light, :root.light {
+  /* Light overrides — keep in sync with your existing :root.light values */
+  --md-sys-color-background:      #fafafa;
+  --md-sys-color-on-background:   #0b0b0b;
+  --md-sys-color-surface:         #ffffff;
+  --md-sys-color-on-surface:      #111;
+  --md-sys-color-surface-variant: #f1f1f6;
+  --md-sys-color-outline:         rgba(110,90,210,.35);
+  --md-sys-color-outline-variant: rgba(110,90,210,.55);
+  --brand-s: 86%;
+  --brand-l: 54%;
+  --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
+  --ui-surface:         var(--md-sys-color-surface);
+  --ui-surface-variant: var(--md-sys-color-surface-variant);
+  --ui-stroke:          var(--md-sys-color-outline);
+  --ui-stroke-hover:    var(--md-sys-color-outline-variant);
+  --ui-focus-ring:      var(--md-sys-color-primary);
+  --ui-glow-color:      var(--md-sys-color-primary);
+  --edge-gutter: clamp(24px, 1.5vw, 24px);
+}
+
+:root{
+  /* ----- Brand / Accent (HSL-based) ----- */
+  --brand-h: 266;
+  --brand-s: 92%;
+  --brand-l: 66%;
+  --md-sys-color-primary: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
+  --md-sys-color-primary-hover: color-mix(in oklab, var(--md-sys-color-primary) 86%, white);
+  --md-sys-color-primary-pressed: color-mix(in oklab, var(--md-sys-color-primary) 80%, black);
+
+  /* Typography */
+  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+
+  /* Display (section buttons: Caption, Design, Mechanicals, Finish) */
+  --typo-display-size: 1rem;         /* 16px */
+  --typo-display-weight: 600;        /* semibold */
+  --typo-display-track: .012em;
+
+  /* Labels (field names like “Module Fill”, “Background”) */
+  --typo-label-size: .9375rem;       /* 15px */
+  --typo-label-weight: 300;          /* medium */
+  --typo-label-track: .01em;
+  --typo-label-color: color-mix(in oklab, var(--md-sys-color-on-surface) 82%, transparent);
+
+  /* Inputs text (inside fields) */
+  --typo-input-size: .9375rem;       /* 15px */
+  --typo-input-weight: 200;
+
+  /* Placeholder text (“dummy” text) */
+  --typo-ph-color: color-mix(in oklab, var(--md-sys-color-on-surface) 55%, transparent);
+  --typo-ph-weight: 200;
+  --typo-ph-opacity: .65;
+
+  /* Surfaces & text */
+  --md-sys-color-background:      #050505;
+  --md-sys-color-on-background:   #EAEAEA;
+  --md-sys-color-surface:         #0E0A12;   /* cards, panels */
+  --md-sys-color-on-surface:      #EAEAEA;
+  --md-sys-color-surface-variant: #171421;   /* inputs, chips */
+  --md-sys-color-muted:           #a1a1aa;
+
+  /* Strokes */
+  --md-sys-color-outline:         rgba(160,140,255,.35);
+  --md-sys-color-outline-variant: rgba(160,140,255,.55);
+
+  /* Elevation (shadows) */
+  --elevation-1: 0 4px 12px rgba(0,0,0,.35);
+  --elevation-2: 0 8px 24px rgba(0,0,0,.40);
+  --elevation-3: 0 12px 32px rgba(0,0,0,.45);
+
+  /* ----- Shape / Corner scale ----- */
+  --shape-corner-scale: 1;
+  --shape-corner-sm-base: 8px;
+  --shape-corner-md-base: 14px;
+  --shape-corner-lg-base: 20px;
+  --shape-corner-sm: calc(var(--shape-corner-sm-base) * var(--shape-corner-scale));
+  --shape-corner-md: calc(var(--shape-corner-md-base) * var(--shape-corner-scale));
+  --shape-corner-lg: calc(var(--shape-corner-lg-base) * var(--shape-corner-scale));
+  --shape-corner-full: 9999px;
+
+  /* Interaction */
+  --state-hover-opacity:   .08;
+  --state-focus-opacity:   .12;
+  --state-pressed-opacity: .12;
+  --focus-ring:            rgba(56,189,248,.7);
+
+  /* Component aliases (single source of truth) */
+  --ui-surface:        rgba(14,14,20,.92);
+  --ui-surface-variant:var(--md-sys-color-surface-variant);
+  --ui-stroke:         var(--md-sys-color-outline);
+  --ui-stroke-hover:   var(--md-sys-color-outline-variant);
+
+  /* QR frame (Transparent mode) */
+  --qr-stroke-color:   rgba(139,92,246,.70);
+  --qr-stroke-width:   1;
+  --qr-stroke-glow:    0 0 18px rgba(139,92,246,.28);
+
+  /* ----- Density / Compact scale ----- */
+  --density-scale: 1;
+  --density-control-h-base: 2.25rem;
+  --density-gap-base: .75rem;
+  --density-control-h: calc(var(--density-control-h-base) * var(--density-scale));
+  --density-gap:       calc(var(--density-gap-base) * var(--density-scale));
+
+  /* ----- Focus ring (consistent keyboard focus) ----- */
+  --focus-ring-width: 2px;
+  --focus-ring-color: color-mix(in oklab, var(--md-sys-color-primary) 35%, transparent);
+
+  /* ----- Motion scale (global speed) ----- */
+  --motion-scale: 1;
+  --motion-duration-1-base: 120ms;
+  --motion-duration-2-base: 180ms;
+  --motion-duration-1: calc(var(--motion-duration-1-base) * var(--motion-scale));
+  --motion-duration-2: calc(var(--motion-duration-2-base) * var(--motion-scale));
+  --motion-ease: cubic-bezier(.2,.6,.2,1);
+
+  /* ----- Export defaults (read by JS) ----- */
+  --export-png-scale: 3;
+  --export-filename: "LGBTQRCode";
+
+  /* ----- Grid overlay knobs (for theme scaffold) ----- */
+  --grid-size: 40px;     /* size of grid squares */
+  --grid-opacity: .10;   /* overall overlay opacity */
+
+  /* Hover / focus glow knobs */
+  --hover-glow-color: color-mix(in oklab, var(--md-sys-color-primary) 30%, transparent);
+  --hover-glow-blur:  8px;   /* glow softness */
+  --focus-glow-blur:  10px;  /* slightly stronger for focus */
+
+  /* Shared chevron for top controls */
+  --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
+  
+  /* Phone radius... */
+  --phone-radius: 22px;
+
+  /* Arrows placement... */
+  --edge-gutter: clamp(24px, 2vw, 24px);
+
+  /* Measured content viewport for open panels */
+    --design-panel-h: 520px; /* JS will overwrite */
+    --header-h: 56px;        /* JS will overwrite */
+    --park-h: clamp(
+      240px,
+      var(--design-panel-h),
+      calc(100dvh - var(--header-h) - 24px)
+    );
+
+  /* … existing vars … */
+  --stack-gap: 0rem;        /* unify spacing rhythm */
+
+  /* ----- BG CARD STROKE (filled mode) ----- */
+    --bg-card-stroke-color:  hsl(179, 100%, 38%);   /* sharp turquoise */
+    --bg-card-stroke-width:  1px;                /* tweak for subtlety */
+    --bg-card-stroke-glow:   0 0 10px rgba(0,240,200,.35);  /* optional soft halo */
+
+  /* Featured / open card accent */
+  --featured-stroke-width: 1px; /* increase to 3–4px if you want chunkier */
+  --featured-stroke-color: color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent);
+  --featured-stroke-glow: 0 0 12px rgba(160,140,255,.35);
+
+  --stepper-stroke-closed: hsl(221, 100%, 7%); /* custom color */
+}
+
+/* shared sticky offset */
+.stage-stick {
+  position: sticky;
+  top: var(--header-h);
+}
+
+/* =========================
+   2. GLOBAL SCAFFOLD
+========================= */
+
+main {
+  margin-top: 2rem; /* or 24px */
+}
+
+body{
+  background: linear-gradient(
+    135deg,
+    var(--md-sys-color-background),
+    color-mix(in oklab, var(--md-sys-color-background) 85%, black)
+  );
+  color: var(--md-sys-color-on-background);
+}
+
+.theme-grid{ position:relative; }
+.theme-grid::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity: var(--grid-opacity);
+  background:
+    linear-gradient(to right, var(--md-sys-color-primary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--md-sys-color-primary) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
+  z-index:0;
+}
+.theme-grid>*{ position:relative; z-index:1; }
+
+/* Make room for fixed footer */
+main{ padding-bottom:4.5rem; }
+
+/* =========================
+   3. CARDS / SURFACES
+========================= */
+.card{
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-lg);
+  box-shadow: var(--elevation-2);
+}
+.step-card{ overflow:hidden; } /* remove square border artifact on rounded cards */
+
+/* Open card highlight */
+#stepper>div{ transition:background-color .15s,border-color .15s; }
+#stepper .step-header{ transition:background-color .15s,border-color .15s,color .15s; }
+#stepper>div.is-open>.step-header {
+  border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
+}
+
+#stepper>div.is-open {
+  border: var(--featured-stroke-width) solid var(--featured-stroke-color);
+  box-shadow: var(--featured-stroke-glow);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 6%, transparent);
+}
+
+/* The stepper is the scroll container + the gap owner */
+#stepper{
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;         /* not min-height */
+  overflow: auto;         /* sticky(top) anchors to this */
+  gap: var(--stack-gap);  /* single source of truth for spacing */
+
+  min-width: 0;
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  scroll-padding-top: calc(var(--header-h, 56px) + 8px);
+}
+
+/* Design & Mechanicals scroll inside a measured viewport */
+.step-card[data-step="design"].is-open [data-step-panel],
+.step-card[data-step="mechanicals"].is-open [data-step-panel]{
+  overflow: auto;
+  block-size: var(--park-h);   /* equalized, measured height */
+  max-height: none;            /* block-size is the cap */
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  /* visible but tasteful scrollbars */
+  scrollbar-width: thin;                           /* Firefox */
+  scrollbar-color: var(--ui-stroke-hover) transparent;
+}
+.step-card[data-step="design"].is-open [data-step-panel]::-webkit-scrollbar,
+.step-card[data-step="mechanicals"].is-open [data-step-panel]::-webkit-scrollbar{
+  width: 10px;
+}
+.step-card[data-step="design"].is-open [data-step-panel]::-webkit-scrollbar-thumb,
+.step-card[data-step="mechanicals"].is-open [data-step-panel]::-webkit-scrollbar-thumb{
+  background: var(--ui-stroke-hover);
+  border-radius: 999px;
+}
+
+/* Finish “parks” exactly one gap below the measured viewport */
+.step-card[data-step="finish"]{
+  /*position: sticky;
+  top: calc(var(--header-h) + var(--park-h) + var(--stack-gap));*/
+  z-index: var(--z-sticky, 20);
+  backdrop-filter: saturate(1.1);
+  border-top: 1px solid color-mix(in oklab, var(--md-sys-color-outline) 65%, transparent);
+}
+
+#captionEl{
+  white-space: pre-wrap;        /* 🔑 preserves \n + collapses extra spaces */
+  overflow-wrap: anywhere;      /* allow breaking long words/URLs */
+  word-break: break-word;       /* legacy safety */
+  hyphens: auto;                /* prettier wrapping for long words */
+  text-wrap: balance;           /* nicer line breaks when multi-line */
+}
+
+#captionBox{
+  max-width: 90%;
+  margin: .5rem auto 0;
+   max-height: clamp(3rem, 16vh, 220px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+#captionBox::-webkit-scrollbar{ width: 8px; }
+#captionBox::-webkit-scrollbar-thumb{ border-radius: 999px; background: var(--ui-stroke-hover); }
+
+#captionEl{
+  font-size: clamp(.9rem, 2.2vw, 1.5rem);
+  line-height: 1.15;
+}
+
+/* Caption panel: allow full-width children */
+.step-card[data-step="caption"] [data-step-panel]{
+  display: flex;
+  align-items: stretch;   /* child can fill the row */
+  min-width: 0;           /* prevents flex overflow clipping */
+}
+
+/* If the input is inside a <label>, collapse it to a single column */
+label:has(#campaign){
+  display:grid;
+  grid-template-columns: 1fr !important;
+}
+label:has(#campaign) > *{ min-width:0; }
+
+/* Caption text input: single row, full width */
+#campaign{
+  display:block;
+  width: 100%;
+  height: var(--density-control-h);
+  line-height: var(--density-control-h);
+  padding: 0 .75rem;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: none;       /* Focus Ring */
+}
+
+/* Nudge the text down inside each step-card */
+.step-card .step-header {
+  padding-top: 1.0rem;   /* was py-3 (~0.75rem) from the HTML */
+}
+
+.step-card [data-step-panel]{
+  padding-top: 0.75rem;  /* panels had no top padding */
+}
+
+/* Optional: give the very first control inside a panel a bit of air */
+.step-card [data-step-panel] > :first-child {
+  margin-top: 0.25rem;
+}
+
+/* Base step card + header use token surfaces (theme-aware) */
+.step-card{
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-lg);
+  box-shadow: var(--elevation-2);
+}
+
+.step-card .step-header{
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border-bottom: 1px solid var(--ui-stroke);
+}
+
+/* Panel body (the content region) */
+.step-card [data-step-panel]{
+  background: var(--ui-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* Hover/focus feedback (matches your global glow) */
+.step-card .step-header:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+.step-card .step-header:focus-visible{
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Tinted placeholder text*/
+.card--fill text.placeholder {
+  fill: rgb(3, 162, 171);
+}
+
+/* Closed accordion buttons: navy stroke */
+#stepper > div:not(.is-open),
+#stepper > div:not(.is-open) .step-header{
+  border-color: var(--stepper-stroke-closed);
+}
+
+/* =========================
+   4. CONTROLS (inputs/selects/Menu)
+========================= */
+
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="search"],
+input[type="password"],
+input[type="color"],
+select{
+  background: var(--ui-surface-variant);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-md);
+  height: var(--density-control-h);
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset;  /* thin baseline */
+  transition:
+    box-shadow var(--motion-duration-1) var(--motion-ease),
+    border-color var(--motion-duration-1) var(--motion-ease),
+    color var(--motion-duration-1) var(--motion-ease),
+    background-color var(--motion-duration-1) var(--motion-ease);
+}
+
+input:hover,
+textarea:hover,
+select:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+
+
+/* Muted/disabled helper */
+.field-muted,
+.field-muted *{
+  opacity:.55;
+  pointer-events:none;
+}
+
+/* Unified top-bar controls (selects + Menu) */
+.control,
+#appMenuBtn,
+#qrType,
+#ecc,
+select.rounded-md,
+.topctl{
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-md);
+  /* BASELINE: thin inset stroke only */
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset;
+  height: var(--density-control-h);
+  transition:
+    box-shadow var(--motion-duration-1) var(--motion-ease),
+    border-color var(--motion-duration-1) var(--motion-ease);
+}
+
+/* Emoji picker buttons */
+#emojiGrid button{
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-sm);
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset;
+  height: calc(var(--density-control-h) * .9);
+}
+
+#emojiGrid button:hover{
+  box-shadow: 0 0 0 1px var(--ui-stroke-hover) inset;
+}
+
+/* HOVER: keep thin inset + add faint outer glow */
+.control:hover,
+#appMenuBtn:hover,
+select.rounded-md:hover,
+.topctl:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+
+/* Hide all focus by default (mouse/touch or scripted focus) */
+:focus { outline: none; }
+
+/* Show the ring only when the user is tabbing (keyboard) */
+body.kbd .control:focus-visible,
+body.kbd #appMenuBtn:focus-visible,
+body.kbd select.rounded-md:focus-visible,
+body.kbd .topctl:focus-visible,
+body.kbd button[data-emoji-target]:focus-visible,
+body.kbd input:focus-visible,
+body.kbd textarea:focus-visible,
+body.kbd select:focus-visible{
+  outline: none;
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Remove native arrow so our chevron matches */
+select.rounded-md,
+select.topctl{
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:2rem;
+}
+button.topctl{ padding-right:2rem; }
+
+/* === TOP BAR CONTROLS — unify visuals, alignment, and chevrons === */
+
+/* Baseline look + alignment */
+#qrType,
+#ecc,
+#appMenuBtn{
+  display: inline-flex;
+  align-items: center;                 /* vertical centering */
+  gap: .5rem;
+  height: var(--density-control-h);
+  padding: 0 .875rem;
+  line-height: 1;
+  font-size: .9375rem;
+  font-weight: 600;
+
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-md);
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset;   /* thin baseline stroke */
+  transition:
+    box-shadow var(--motion-duration-1) var(--motion-ease),
+    border-color var(--motion-duration-1) var(--motion-ease);
+}
+
+/* Hover: keep thin inset + add faint outer glow */
+#qrType:hover,
+#ecc:hover,
+#appMenuBtn:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+
+/* Focus: thin inset + stronger glow ring */
+#qrType:focus,
+#ecc:focus,
+#appMenuBtn:focus{
+  outline: none;
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Remove native select chrome so we can center text & add our own chevrons */
+#qrType,
+#ecc{
+  -webkit-appearance: none;
+          appearance: none;
+  padding-right: 2rem;                   /* room for chevron */
+}
+
+/* Chevrons for the two selects via background image */
+#qrType,
+#ecc{
+  background-image: var(--chev-icon);
+  background-repeat: no-repeat;
+  background-position: right .6rem center;
+  background-size: .75rem .75rem;
+}
+
+/* Chevron for the Menu button via pseudo (keeps it identical) */
+#appMenuBtn{
+  position: relative;
+  padding-right: 2rem;                   /* room for chevron */
+}
+#appMenuBtn::after{
+  content:"";
+  position:absolute;
+  right:.6rem;
+  top:50%;
+  width:.75rem; height:.75rem;
+  transform:translateY(-50%);
+  opacity:.85;
+  background-image: var(--chev-icon);
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:100% 100%;
+}
+
+/* Optional: ensure consistent min-width so short labels (like “M”) don’t look cramped */
+#ecc{ min-width: 3.25rem; justify-content:center; }
+
+/* Chevron for top controls */
+.topctl--chev::after{
+  content:"";
+  pointer-events:none;
+  position:absolute;
+  right:.6rem;
+  top:50%;
+  width:.75rem;
+  height:.75rem;
+  transform:translateY(-50%);
+  opacity:.85;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:100% 100%;
+  background-image: var(--chev-icon);
+}
+
+/* Emoji picker trigger = match other controls */
+button[data-emoji-target]{
+  /* visuals */
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-md);
+    box-shadow: 0 0 0 1px var(--ui-stroke) inset;
+
+  /* sizing / type */
+  height: var(--density-control-h);
+  padding: 0 .875rem;
+  line-height: 1;
+  font-size: .875rem;
+  font-weight: 600;
+
+  /* behavior */
+  cursor: pointer;
+  transition:
+    box-shadow var(--motion-duration-1) var(--motion-ease),
+    border-color var(--motion-duration-1) var(--motion-ease);
+}
+
+button[data-emoji-target]:hover{
+  box-shadow: 0 0 0 1px var(--ui-stroke-hover) inset, var(--elevation-2);
+}
+
+#emojiGrid button:focus{
+  outline: none;
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* If it was getting a white default button style anywhere, neutralize it */
+button[data-emoji-target]::-moz-focus-inner{ border: 0; }
+
+/* DISPLAY: section headers (Caption / Design / Mechanicals / Finish) */
+.step-header,
+.step-header button,
+.step-header .title{
+  font-family: var(--font-family);
+  font-size: var(--typo-display-size);
+  font-weight: var(--typo-display-weight);
+  letter-spacing: var(--typo-display-track);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* LABELS: field labels like “Module Fill”, “Background” */
+label,
+.field-label{
+  font-family: var(--font-family);
+  font-size: var(--typo-label-size);
+  font-weight: var(--typo-label-weight);
+  letter-spacing: var(--typo-label-track);
+  color: var(--typo-label-color);
+}
+
+/* INPUT TEXT: value text inside inputs/selects/buttons */
+input, textarea, select,
+.control, .topctl, button[data-emoji-target]{
+  font-family: var(--font-family);
+  font-size: var(--typo-input-size);
+  font-weight: var(--typo-input-weight);
+}
+
+/* PLACEHOLDERS: “dummy” text in fields */
+input::placeholder,
+textarea::placeholder{
+  color: var(--typo-ph-color);
+  font-weight: var(--typo-ph-weight);
+  opacity: var(--typo-ph-opacity);
+}
+
+/* turn OFF generic :focus glow */
+#stepper .step-header:focus { box-shadow: none; }
+
+/* show the nice ring only for keyboard nav */
+#stepper .step-header:focus-visible{
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* default: no transitions before JS marks ready */
+:not(.ui-ready) #stepper .step-header,
+:not(.ui-ready) #stepper > .step-card{
+  transition: none !important;
+  box-shadow: none !important;
+}
+
+/* Mechanicals & Design: same visible body height; scroll internally */
+.step-card[data-step="design"].is-open [data-step-panel],
+.step-card[data-step="mechanicals"].is-open [data-step-panel]{
+  overflow: auto;
+  block-size: var(--park-h); /* equalized, measured height */
+  max-height: none;          /* block-size is the cap */
+  overscroll-behavior: contain;
+}
+
+/* =========================
+   5. PREVIEW LAYOUT
+========================= */
+
+/* Portrait stage wrapper (outer container) */
+.preview-stage{
+  position: relative;
+  width: 100%;
+  min-width: 320px;
+  max-width: 400px;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  border-radius: var(--shape-corner-lg);
+  display: grid;
+  /* Top-align the phone within the stage */
+  align-items: start;        /* ⬅️ key change */
+  justify-items: center;     /* keep it centered horizontally */
+  overflow: visible;
+}
+
+/* Main preview wrapper (card) */
+#qrPreview{
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;                 /* ← keep card height equal to stage */
+  border-radius: var(--phone-radius);
+  margin: 0;
+  border-radius: var(--phone-radius); /* stroke */
+  background: transparent;
+  overflow: clip;               /* ← confine fill and children to radius */
+  box-shadow: 0 12px 32px rgba(0,0,0,.35); /* replace filter drop-shadow */
+  /* filter: drop-shadow(...)  ← remove this */
+}
+
+/* Transparent mode — border & glow live on this same element */
+#qrPreview.card--stroke {
+  background: none;
+  border: calc(var(--qr-stroke-width) * 1px) solid var(--qr-stroke-color);
+  border-radius: var(--phone-radius);
+  box-shadow: var(--qr-stroke-glow);
+}
+
+/* Filled mode — same box, same radius, just a fill color */
+#qrPreview.card--fill {
+  background: var(--frame-color, #ffffff);
+  border: var(--bg-card-stroke-width) solid var(--bg-card-stroke-color);
+  border-radius: var(--phone-radius);
+  box-shadow: var(--bg-card-stroke-glow);
+}
+
+/* QR mount = container for the SVG */
+#qrMount{
+  width: auto;
+  height: 100%;
+  margin-top: 4rem;
+  max-height: 100%;
+  border-radius: inherit;
+  display: block;
+  place-items: center;
+}
+#qrMount > svg{
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+
+/* =========================
+   ARROWS
+========================= */
+.nav-arrow{
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-full);
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset; /* thin baseline */
+}
+.nav-arrow:hover{
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+.nav-arrow:focus{
+  outline: none;
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Triangle glyphs */
+#prevSubtype::after,
+#nextSubtype::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, -50%);
+}
+#prevSubtype::after{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 10px solid var(--md-sys-color-on-surface);
+}
+#nextSubtype::after{
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid var(--md-sys-color-on-surface);
+}  
+
+/* Put each arrow just outside the card edges */
+#prevSubtype{
+  top:50%;
+  left: calc(-1.75 * var(--edge-gutter));        /* or: calc(-1 * var(--edge-gutter)) */
+  right: auto;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+#nextSubtype{
+  top:50%;
+  right: calc(-1.75 * var(--edge-gutter));       /* or: calc(-1 * var(--edge-gutter)) */
+  left:  auto;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+
+/* =========================
+   FOOTER
+========================= */
+/* ===== Footer ===== */
+.app-footer{
+  position: fixed;      /* keep it pinned */
+  left: 0; right: 0; bottom: 0;
+  z-index: 20;
+  padding: 14px 0 16px; /* content padding; the rule will ignore this */
+  background: #02272a;  /* deep turquoise */
+  color: #e0f9f8;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(0,0,0,.25); /* subtle edge */
+  overflow: hidden;     /* clip the rule if it glows */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+
+.app-footer__rule{
+  /* put the line AT THE TOP BORDER, full width */
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  width: 100%;
+  margin: 0;            /* kill the old auto-centering */
+  border-radius: 0;     /* no pill rounding */
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0,240,200,.25) 15%,
+    rgba(0,240,200,.70) 50%,
+    rgba(0,240,200,.25) 85%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 .5px rgba(0,240,200,.5),
+    0 0 10px rgba(0,240,200,.25);
+  pointer-events: none;
+}
+
+.app-footer__text{
+  text-align: center;
+  font-size: .8125rem;
+  color: rgba(224,249,248,.85);
+  margin-top: 8px;      /* space under the rule */
+}
+
+/* High-contrast toggle (add .hc on <html>) */
+
+
+:root.hc{
+  --md-sys-color-on-surface: #fff;
+  --md-sys-color-outline: rgba(255,255,255,.65);
+  --md-sys-color-outline-variant: rgba(255,255,255,.9);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  :root{ --motion-scale: .01; }
+}
+
+/* Optional hover/focus feedback (subtle glow) */
+input[type="color"]:hover{
+  filter: drop-shadow(0 0 4px var(--ui-stroke-hover));
+}
+input[type="color"]:focus{
+  outline: none;
+  filter: drop-shadow(0 0 6px var(--focus-ring-color));
+}
+
+/* Group color pickers + hex fields neatly */
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+}
+
+/* Make hex field visually tied to its picker */
+.color-field input[type="text"] {
+  flex: 1;
+  text-align: center;
+  font-family: monospace;
+  font-size: .875rem;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+  background: var(--ui-surface-variant);
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-md);
+  height: var(--density-control-h);
+  box-shadow: 0 0 0 1px var(--ui-stroke) inset;
+  transition:
+    box-shadow var(--motion-duration-1) var(--motion-ease),
+    border-color var(--motion-duration-1) var(--motion-ease);
+}
+
+.color-field input[type="text"]:hover {
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+
+.color-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Color chip: fixed, perfect circle — never stretch */
+input[type="color"]{
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;       /* prevent flex/grid shrinking */
+  min-height: 1.75rem;
+  aspect-ratio: 1 / 1;      /* stay square even if a parent tries to stretch */
+  flex: 0 0 1.75rem;        /* don’t grow or shrink */
+  align-self: center;       /* keeps it centered in tall rows */
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+          appearance: none;
+  box-sizing: content-box;
+}
+
+/* Make the actual swatch inherit shape and remove its inner border */
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50% }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50% }
+input[type="color"]::-moz-color-swatch { border: none; border-radius: 50% }
+
+/* ---- Color rows: keep chip circular and let the hex input take the width ---- */
+
+/* Generic label rows: title + control */
+label.text-sm.block{
+  display: grid;
+  grid-template-columns: auto 1fr;   /* title, then a flexible control */
+  align-items: center;
+  gap: .75rem;
+}
+
+/* Rows that include a color swatch: title · swatch · hex */
+label:has(input[type="color"]){
+  grid-template-columns: auto auto 1fr; /* title, chip, hex input */
+}
+
+/* Make the hex field actually flex and not collapse */
+label:has(input[type="color"]) input[type="text"]{
+  width: 100%;
+  min-width: 16ch;     /* keep it readable on tight layouts */
+}
+
+/* Optional: keep the chip from crowding the field */
+label:has(input[type="color"]) input[type="color"]{
+  margin-inline-start: .25rem;
+}
