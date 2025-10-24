@@ -1,4 +1,5 @@
 .DS_Store
+styles/.DS_Store
 node_modules/
 dist/
 build/
