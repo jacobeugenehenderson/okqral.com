@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>🤠 okQRal – Prototype</title>
+  <title>🤠 okQRal</title>
 
 <script>
 (function () {
@@ -50,16 +50,14 @@
         <label class="text-sm">
           <span class="sr-only">Type</span>
           <select id="qrType" class="topctl topctl--chev text-sm" aria-label="Type">
-            <option>URL</option><option>Payment</option><option>WiFi</option>
-            <option>Contact</option><option>Message</option><option>Event</option><option>Map</option>
-          </select>
-        </label>
-
-        <!-- ECC -->
-        <label class="text-sm">
-          <span class="sr-only">ECC</span>
-          <select id="ecc" class="topctl topctl--chev text-sm" aria-label="ECC">
-            <option>L</option><option selected>M</option><option>Q</option><option>H</option>
+            <option value="" disabled selected hidden>QR Types</option>
+            <option>URL</option>
+            <option>Payment</option>
+            <option>WiFi</option>
+            <option>Contact</option>
+            <option>Message</option>
+            <option>Event</option>
+            <option>Map</option>
           </select>
         </label>
 
@@ -67,7 +65,7 @@
         <div id="appMenuWrap" class="relative">
           <button id="appMenuBtn" class="topctl topctl--chev text-sm"
                   aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu">
-            Menu
+            🍔
           </button>
           <div id="appMenu"
                class="hidden absolute right-0 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-md
@@ -287,9 +285,22 @@
 <!-- Mechanicals -->
 <div class="step-card rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-900 dark:border-neutral-800"
      data-step="mechanicals">
-  <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
-    Mechanicals
-  </button>
+
+  <!-- Header wrapper (pill lives here) -->
+  <div class="step-header-wrap">
+    <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+      Mechanicals
+    </button>
+
+    <!-- ECC pill (inside header) -->
+    <div id="eccPill" class="ecc-pill" role="group" aria-label="Error correction">
+      <button type="button" class="ecc-btn" data-ecc="L">L</button>
+      <button type="button" class="ecc-btn" data-ecc="M">M</button>
+      <button type="button" class="ecc-btn" data-ecc="Q">Q</button>
+      <button type="button" class="ecc-btn" data-ecc="H">H</button>
+    </div>
+  </div>
+
   <!-- Closed by default -->
   <div class="px-4 pb-4 space-y-4" data-step-panel style="display:none">
     <div id="detailsPanel" class="space-y-4"></div>
@@ -629,6 +640,16 @@
     const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     setTheme(saved || sys);
   })();
+</script>
+
+<script>
+(function(){
+  const sel = document.getElementById('qrType');
+  if (!sel) return; // guard in case the element isn’t rendered yet
+  const sync = () => sel.classList.toggle('is-placeholder', !sel.value);
+  sel.addEventListener('change', sync);
+  sync(); // on load
+})();
 </script>
 
 </body>

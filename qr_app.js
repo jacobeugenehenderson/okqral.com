@@ -30,14 +30,6 @@
 const root   = document.documentElement;
 const toggle = document.getElementById('themeToggle');
 
-/*// --- Initialize theme from saved or system preference ---
-(function initTheme() {
-  const saved = localStorage.getItem('theme');
-  if (saved === 'dark') setTheme(true);
-  else if (saved === 'light') setTheme(false);
-  else setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
-})()*/
-
 function setTheme(mode) {
   const r = document.documentElement;
   const isDark = (mode === true) || (mode === 'dark') ||
@@ -59,6 +51,67 @@ mq.addEventListener?.('change', (e) => {
   // --- Footer year ---
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  /* === ECC (add-only, session-persistent) ========================== */
+const ECC_KEY = 'okqral_ecc';
+const ECC_DEFAULT = 'M';
+
+function getECC(){
+  const v = sessionStorage.getItem(ECC_KEY);
+  return /^[LMQH]$/.test(v) ? v : ECC_DEFAULT;
+}
+
+function setECC(val, { trigger = true } = {}){
+  const v = (val || '').toUpperCase();
+  if (!/^[LMQH]$/.test(v)) return;
+  sessionStorage.setItem(ECC_KEY, v);
+
+  // Reflect to pill buttons
+  const pill = document.getElementById('eccPill');
+  pill?.querySelectorAll('.ecc-btn').forEach(b => {
+    b.setAttribute('aria-pressed', b.dataset.ecc === v ? 'true' : 'false');
+  });
+
+  // Reflect to any select#ecc present (top-bar or hidden)
+  const sel = document.getElementById('ecc');
+  if (sel && sel.value !== v){
+    sel.value = v;
+    if (trigger) sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Live re-render (non-invasive)
+  if (typeof render === 'function') render();
+}
+
+function wireECCPill(){
+  const pill = document.getElementById('eccPill');
+  if (!pill || wireECCPill._done) return;
+  pill.querySelectorAll('.ecc-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // keep header toggle from swallowing clicks
+      setECC(btn.dataset.ecc);
+    }, { passive: false });
+  });
+  setECC(getECC(), { trigger: false });
+  wireECCPill._done = true;
+}
+
+// Keep legacy/top-bar select alive and in sync (add-only)
+function wireECCLegacySelect(){
+  const sel = document.getElementById('ecc');
+  if (!sel || wireECCLegacySelect._done) return;
+
+  sel.addEventListener('change', () => {
+    // Sync from select → pill (no re-emit)
+    setECC(sel.value, { trigger: false });
+  });
+
+  // Ensure initial mutual sync
+  setECC(sel.value || getECC(), { trigger: false });
+  wireECCLegacySelect._done = true;
+}
+/* === END ECC ===================================================== */
     
     // -------- Emoji picker (catalog + search) --------
     const EMOJI_BIG = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","🙂","🙃","☺️","😋","😌","😍","🥰","😘","😗","😙","😚","😜","🤪","😝","😛","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😶‍🌫️","😏","😒","🙄","😬","🤥","😴","😪","😮‍💨","😌","😮","😯","😲","😳","🥵","🥶","😱","😨","😰","😥","😢","😭","😤","😡","😠","🤬","🤯","😷","🤒","🤕","🤢","🤮","🤧","🥴","😵","😵‍💫","🤠","🥳","😎","🤓","🧐","😕","🫤","😟","🙁","☹️","🤷","🤷‍♂️","🤷‍♀️","💪","👋","🤝","👍","👎","👏","🙌","👐","🤲","🤟","✌️","🤘","👌","🤌","🤏","👈","👉","☝️","👆","👇","✋","🖐️","🖖","✊","👊","💋","❤️","🩷","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","🌈","🏳️‍🌈","🏳️‍⚧️","⭐️","✨","🔥","⚡️","💥","🌟","☀️","🌙","🪐","🌍","🌎","🌏","🌊","⛰️","🏙️","🗽","🚗","✈️","🚀","⌚️","📱","💻","🖥️","🖨️","🎧","🎤","🎬","📷","📸","📝","📚","🔖","📎","🔬","🔧","⚙️","🍎","🍉","🍇","🍓","🍑","🍍","🥑","🌮","🍣","🍰","🍫","🍩","🍿","🍺","🍷","🍸","🎉","🎊","🎈","🎮","🎯","🏆","🏵️","✊🏿","✊🏾","✊🏽","✊🏼","✊🏻","👍🏿","👍🏾","👍🏽","👍🏼","👍🏻","👋🏿","👋🏾","👋🏽","👋🏼","👋🏻","🏁","🚩","🏳️","🏴","🏳️‍🌈","🏳️‍⚧️","🇺🇸","🇨🇦","🇬🇧","🇫🇷","🇩🇪","🇮🇹","🇪🇸","🇧🇷","🇯🇵","🇰🇷","🇨🇳","🇮🇳","🇿🇦"];
@@ -291,8 +344,6 @@ window.getPresets = (t) => {
 const presetsByType = manifest.presets || {};
 const currentPresetIdx = new Map();
 
-
-
 function getPresets(type) {
   const list = presetsByType[type];
   return Array.isArray(list) ? list : [];
@@ -385,6 +436,8 @@ typeSel.addEventListener('change', () => {
   // 🔹 add this block inside the listener, right after applyPreset
   const list = getPresets(t);
   setCaptionFromPreset(list[currentPresetIdx.get(t)] || {}, t);
+
+  sendEvent('type_change', currentUiState());
 });
 
 // Arrow handlers
@@ -400,9 +453,13 @@ function cyclePreset(dir) {
   const cur  = currentPresetIdx.get(t) ?? 0;
   const next = (cur + dir + list.length) % list.length;
   applyPreset(t, next);
-
-
   setCaptionFromPreset(list[next] || {}, t);
+
+  sendEvent('preset_change', {
+    presetIndex: next,
+    presetName: (list[next] && (list[next].name || list[next].label || list[next].campaign)) || undefined,
+    ...currentUiState()
+  });
 }
 
 prevBtn?.addEventListener('click', () => cyclePreset(-1));
@@ -1334,16 +1391,32 @@ function boot() {
   // 1) Wire one-time bindings
   wireBackgroundBindingsOnce();
   wireRightAccordionBehaviorOnce();
-
+  wireECCPill();
+  
 // After your existing boot wiring:
 refreshModulesMode?.();   // enables Emoji + Scale when “Emoji” is selected
 refreshCenter?.();        // enables center Emoji + Scale when “Emoji” is selected
 refreshBackground?.();    // applies Transparent toggle to the preview frame
 
-document.getElementById('url')?.addEventListener('input', render);
+requestAnimationFrame(() => {
+    if (typeof render === 'function') render();
+    document.documentElement.classList.add('ui-ready');
+  });
+}
+
 document.getElementById('modulesMode')?.addEventListener('change', () => { refreshModulesMode?.(); render(); });
+document.getElementById('modulesMode')?.addEventListener('change', () => {
+  sendEvent('modules_mode', currentUiState());
+});
 document.getElementById('centerMode')?.addEventListener('change',  () => { refreshCenter?.();     render(); });
+document.getElementById('centerMode')?.addEventListener('change', () => {
+  sendEvent('center_mode', currentUiState());
+});
 document.getElementById('bgTransparent')?.addEventListener('change', () => { refreshBackground?.(); render(); });
+document.getElementById('bgTransparent')?.addEventListener('change', () => {
+  const transparent = !!document.getElementById('bgTransparent')?.checked;
+  sendEvent('bg_mode', { transparent, ...currentUiState() });
+});
 document.getElementById('bgColor')?.addEventListener('input', () => { refreshBackground?.(); render(); });
 
   // 2) First-pass UI state (so fields/labels enable/disable correctly)
@@ -1352,12 +1425,17 @@ document.getElementById('bgColor')?.addEventListener('input', () => { refreshBac
   try { refreshCenter?.(); }      catch {}
 
   // 3) First render (next frame avoids layout thrash)
+    sendEvent('view', currentUiState());   // ← add this line
   requestAnimationFrame(() => {
     if (typeof render === 'function') render();
-    // 4) Now allow focus styles/transitions
     document.documentElement.classList.add('ui-ready');
   });
-}
+
+  document.getElementById('showCaption')?.addEventListener('change', () => {
+  const show = !!document.getElementById('showCaption')?.checked;
+  sendEvent('caption_toggle', { showCaption: show, ...currentUiState() });
+});
+
 
 // Run after DOM is ready (once)
 if (document.readyState === 'loading') {
@@ -1391,7 +1469,7 @@ const caption = (
   const cardWidth = Math.max(rect.width || preview.clientWidth || 320, 320);
 
   // Build composed SVG
-  const ecc = document.getElementById('ecc')?.value || 'M';
+  const ecc = getECC();
   const svg = composeCardSvg({
     cardWidth,
     transparentBg: isTransparent,
@@ -1443,7 +1521,7 @@ function refreshModulesMode(){
   // Module "shape" control (whatever your id is — try these in order)
   const shapeSel  =
     document.getElementById('modules') ||
-    document.getElementById('modulesShape') ||
+    document.getElementById('moduleShape') ||
     document.querySelector('[name="modules"]');
 
   // BODY color pair (hex + swatch). Use whatever ids you already have.
@@ -1523,12 +1601,6 @@ function refreshBackground() {
   // 4) Update the preview card (fills vs stroke outline)
   updatePreviewBackground();
 }
-
-// wire once
-document.getElementById('bgTransparent')?.addEventListener('change', () => {
-  refreshBackground();
-  if (typeof render === 'function') render();
-});
 
 function refreshCenter(){
   const mode = document.getElementById('centerMode')?.value || 'None';
@@ -1684,7 +1756,7 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
   }, 'image/png');
 }  
 
-  // get caption or default
+  /*// get caption or default
   const caption = document.getElementById('campaign')?.value?.trim() || 'okQRal';
 
   // sanitize filename (remove illegal chars, trim spaces)
@@ -1693,10 +1765,10 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
     .replace(/^_+|_+$/g, '')       // trim leading/trailing underscores
     .substring(0, 40);             // limit to 40 chars max
 
-  const base = safeName || 'okQRal';
+  const base = safeName || 'okQRal';*/
 
 // --- Sheets reporter (anonymous, no PII) ---
-const REPORT_URL = 'https://script.google.com/macros/s/AKfycby5kbQ1oEM6WedWRn5jwVVreSXp84njT797uZloY_Zpcw96kYjfBD--wsVv7u3iQ67cTA/exec';
+const REPORT_URL = 'https://script.google.com/macros/s/AKfycbx555EZo2jrYhtz7Lvc86GF8kxYE0mktkfCWvysycdSMoVU-c1S60HBpINdq-ooXQQ6nw/exec'
 
 // tiny anon IDs (local/session only)
 function getAnonIds(){
@@ -1749,6 +1821,62 @@ function pwaState(){
   const m1 = window.matchMedia?.('(display-mode: standalone)').matches;
   const m2 = window.navigator?.standalone; // iOS
   return !!(m1 || m2);
+}
+
+// Minimal, reusable event sender
+async function sendEvent(name, extra = {}) {
+  try {
+    const { uid, sid } = getAnonIds();
+
+    const payload = {
+      event: name,
+      ts: Date.now(),
+
+      // visit/session
+      uid, sid,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      lang: navigator.language || '',
+      langs: navigator.languages || [],
+
+      // page + acquisition
+      page: location.pathname,
+      host: location.hostname,
+      ref: document.referrer ? new URL(document.referrer).origin : '',
+      utm: getUtm(),
+
+      // runtime prefs
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+      prefs: accPrefs(),
+      pwa: pwaState(),
+
+      // merge any call-site specifics (e.g., current type, ecc, caption flag, etc.)
+      ...extra
+    };
+
+    await fetch(REPORT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) { /* silent */ }
+}
+
+// Small helper so listeners can attach consistent context
+function currentUiState() {
+  return {
+    qr: {
+      type:        document.getElementById('qrType')?.value || '',
+      ecc:         document.getElementById('ecc')?.value || '',
+      modulesMode: document.getElementById('modulesMode')?.value || '',
+      centerMode:  document.getElementById('centerMode')?.value || '',
+      showCaption: !!document.getElementById('showCaption')?.checked
+    },
+    outputs: {
+      png: !!document.getElementById('wantPng')?.checked,
+      svg: !!document.getElementById('wantSvg')?.checked
+    }
+  };
 }
 
 async function reportExport() {
@@ -1884,6 +2012,11 @@ function openOnly(index, opts = {}) {
 
     // highlight card
     if (card) card.classList.toggle('is-open', isOpen);
+
+    if (card?.dataset.step === 'mechanicals') {
+    const pill = card.querySelector('#eccPill');
+    if (pill) pill.hidden = !isOpen;
+}
 
     // scroll-frame for large panels only (Design/Mechanicals)
     // keep Caption & Finish free of inner scroll

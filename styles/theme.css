@@ -1,5 +1,5 @@
 /* =======================================================================
-   LGBTQRCODE — THEME.CSS
+   okQRal — THEME.CSS
    Master style sheet controlling UI variables, theming, and component look.
    Author: Jacob Eugene Henderson
    -----------------------------------------------------------------------
@@ -62,6 +62,7 @@ html.light, :root.light {
   --ui-focus-ring:      var(--md-sys-color-primary);
   --ui-glow-color:      var(--md-sys-color-primary);
   --edge-gutter: clamp(24px, 1.5vw, 24px);
+  --md-sys-color-on-primary: #ffffff;
 }
 
 :root{
@@ -72,6 +73,7 @@ html.light, :root.light {
   --md-sys-color-primary: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
   --md-sys-color-primary-hover: color-mix(in oklab, var(--md-sys-color-primary) 86%, white);
   --md-sys-color-primary-pressed: color-mix(in oklab, var(--md-sys-color-primary) 80%, black);
+  --md-sys-color-on-primary: #0B0715;
 
   /* Typography */
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
@@ -181,14 +183,8 @@ html.light, :root.light {
   /* Arrows placement... */
   --edge-gutter: clamp(24px, 2vw, 24px);
 
-  /* Measured content viewport for open panels */
-    --design-panel-h: 520px; /* JS will overwrite */
-    --header-h: 56px;        /* JS will overwrite */
-    --park-h: clamp(
-      240px,
-      var(--design-panel-h),
-      calc(100dvh - var(--header-h) - 24px)
-    );
+  /* Footer height token */
+    --footer-h: 72px;
 
   /* … existing vars … */
   --stack-gap: 0rem;        /* unify spacing rhythm */
@@ -240,8 +236,10 @@ body{
 }
 .theme-grid>*{ position:relative; z-index:1; }
 
-/* Make room for fixed footer */
-main{ padding-bottom:4.5rem; }
+/* Make room for the fixed footer + a little air */
+main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
+}
+
 
 /* =========================
    3. CARDS / SURFACES
@@ -258,7 +256,7 @@ main{ padding-bottom:4.5rem; }
 /* Open card highlight */
 #stepper>div{ transition:background-color .15s,border-color .15s; }
 #stepper .step-header{ transition:background-color .15s,border-color .15s,color .15s; }
-#stepper>div.is-open>.step-header {
+#stepper>div.is-open .step-header {
   border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
   background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
 }
@@ -269,50 +267,54 @@ main{ padding-bottom:4.5rem; }
   background: color-mix(in oklab, var(--md-sys-color-primary) 6%, transparent);
 }
 
+/* Mechanicals: header stripe is painted by the WRAP */
+.step-card[data-step="mechanicals"].is-open .step-header-wrap {
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
+  border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
+}
+
+/* Remove the button’s own stripe so there’s no seam */
+.step-card[data-step="mechanicals"].is-open .step-header {
+  background: transparent;
+  border-bottom: 0;
+}
+
+/* Mechanicals body should match other panels’ surface */
+.step-card[data-step="mechanicals"] [data-step-panel]{
+  background: var(--ui-surface-variant);
+}
+
+/* Nudge the panel up 1px so it tucks under the header line (no step) */
+.step-card[data-step="mechanicals"].is-open [data-step-panel]{
+  margin-top: -1px;
+}
+
 /* The stepper is the scroll container + the gap owner */
 #stepper{
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;         /* not min-height */
-  overflow: auto;         /* sticky(top) anchors to this */
-  gap: var(--stack-gap);  /* single source of truth for spacing */
-
-  min-width: 0;
-  width: 100%;
-  max-width: 720px;
-  margin-inline: auto;
-  scroll-padding-top: calc(var(--header-h, 56px) + 8px);
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  overflow:auto;
+  gap: var(--stack-gap);
+  min-width:0; width:100%; max-width:720px; margin-inline:auto;
+  scroll-padding-top: calc(var(--header-h,56px) + 8px);
+  padding-bottom: calc(var(--footer-h,72px) + 8px); /* reserve for fixed footer */
 }
 
-/* Design & Mechanicals scroll inside a measured viewport */
-.step-card[data-step="design"].is-open [data-step-panel],
-.step-card[data-step="mechanicals"].is-open [data-step-panel]{
-  overflow: auto;
-  block-size: var(--park-h);   /* equalized, measured height */
-  max-height: none;            /* block-size is the cap */
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable both-edges;
-  /* visible but tasteful scrollbars */
-  scrollbar-width: thin;                           /* Firefox */
-  scrollbar-color: var(--ui-stroke-hover) transparent;
-}
-.step-card[data-step="design"].is-open [data-step-panel]::-webkit-scrollbar,
-.step-card[data-step="mechanicals"].is-open [data-step-panel]::-webkit-scrollbar{
-  width: 10px;
-}
-.step-card[data-step="design"].is-open [data-step-panel]::-webkit-scrollbar-thumb,
-.step-card[data-step="mechanicals"].is-open [data-step-panel]::-webkit-scrollbar-thumb{
-  background: var(--ui-stroke-hover);
-  border-radius: 999px;
-}
-
-/* Finish “parks” exactly one gap below the measured viewport */
+/* Finish parks just above the footer padding inside #stepper */
 .step-card[data-step="finish"]{
-  /*position: sticky;
-  top: calc(var(--header-h) + var(--park-h) + var(--stack-gap));*/
-  z-index: var(--z-sticky, 20);
+  position: sticky;
+  bottom: calc(var(--footer-h,72px) + 8px);
+  z-index: 40; /* above .app-footer’s z-index */
   backdrop-filter: saturate(1.1);
   border-top: 1px solid color-mix(in oklab, var(--md-sys-color-outline) 65%, transparent);
+}
+
+/* Optional: tighten the gap on very tall layouts so it doesn't look lost */
+@media (min-height: 900px) {
+  .step-card[data-step="finish"] {
+    --finish-gap: 3.5rem;
+  }
 }
 
 #captionEl{
@@ -424,6 +426,104 @@ label:has(#campaign) > *{ min-width:0; }
   border-color: var(--stepper-stroke-closed);
 }
 
+/* Buttons — CANONICAL */
+.ecc-btn {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+
+  /* shape + sizing */
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+
+  /* layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* visuals (use the nicer color-mix set you had below) */
+  background: color-mix(in srgb, var(--md-sys-color-surface-variant) 85%, white 15%);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+  color: var(--md-sys-color-on-surface);
+  text-decoration: none !important;
+
+  /* type + motion */
+  font: 600 0.85rem/1 var(--font-family, system-ui);
+  transition: box-shadow var(--motion-duration-1) var(--motion-ease);
+}
+
+/* Buttons — pressed (canonical, token-based) */
+.ecc-btn[aria-pressed="true"] {
+  outline: none; /* avoid default rectangular outline */
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-color: var(--md-sys-color-primary);
+  /* thin, token-based ring so it matches the “control panel” focus visuals */
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* Optional: keyboard-only ring, consistent with your body.kbd focus policy */
+body.kbd .ecc-btn[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--focus-ring-color);
+}
+
+/* Remove any inherited text underline on the label */
+.ecc-btn,
+.ecc-btn:focus,
+.ecc-btn:hover {
+  text-decoration: none;
+}
+
+.ecc-btn:hover, .ecc-btn:focus-visible { background: rgba(255,255,255,.08); outline: none; }
+.ecc-btn:hover { transform: translateY(-1px); }
+
+/* Mobile tweaks */
+@media (max-width: 640px) {
+  .step-card[data-step="mechanicals"]:not(.is-open) .step-header { padding-bottom: 1rem; }
+}
+
+/* Make the header a flex row so the pill can live on the right */
+.step-card[data-step="mechanicals"] .step-header-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* Let the title take the left, pill pushes to the right */
+.step-card[data-step="mechanicals"] .step-header-wrap [data-step-toggle] {
+  flex: 1 1 auto;
+  padding-right: 0; /* overrides earlier padding-right safely */
+}
+
+/* Place the pill inline at the right (no absolute positioning) */
+.step-card[data-step="mechanicals"] .step-header-wrap #eccPill.ecc-pill {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;                /* keep buttons on one line */
+  gap: var(--density-gap);          /* consistent inter-button spacing */
+  margin-left: auto;                /* push to the right */
+  padding-right: var(--edge-gutter);/* use your existing layout knob */
+}
+
+/* Remove underline and focus outline in all states */
+.ecc-btn:hover,
+.ecc-btn:focus,
+.ecc-btn:active {
+  text-decoration: none !important;
+  outline: none;
+}
+
+/* Buttons — pressed must win over hover/focus */
+.ecc-btn[aria-pressed="true"],
+.ecc-btn[aria-pressed="true"]:hover,
+.ecc-btn[aria-pressed="true"]:focus-visible {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
 /* =========================
    4. CONTROLS (inputs/selects/Menu)
 ========================= */
@@ -469,7 +569,6 @@ select:hover{
 .control,
 #appMenuBtn,
 #qrType,
-#ecc,
 select.rounded-md,
 .topctl{
   background: var(--ui-surface);
@@ -539,7 +638,6 @@ button.topctl{ padding-right:2rem; }
 
 /* Baseline look + alignment */
 #qrType,
-#ecc,
 #appMenuBtn{
   display: inline-flex;
   align-items: center;                 /* vertical centering */
@@ -562,7 +660,6 @@ button.topctl{ padding-right:2rem; }
 
 /* Hover: keep thin inset + add faint outer glow */
 #qrType:hover,
-#ecc:hover,
 #appMenuBtn:hover{
   box-shadow:
     0 0 0 1px var(--ui-stroke-hover) inset,
@@ -571,7 +668,6 @@ button.topctl{ padding-right:2rem; }
 
 /* Focus: thin inset + stronger glow ring */
 #qrType:focus,
-#ecc:focus,
 #appMenuBtn:focus{
   outline: none;
   border-color: var(--ui-stroke-hover);
@@ -581,16 +677,14 @@ button.topctl{ padding-right:2rem; }
 }
 
 /* Remove native select chrome so we can center text & add our own chevrons */
-#qrType,
-#ecc{
+#qrType{
   -webkit-appearance: none;
           appearance: none;
   padding-right: 2rem;                   /* room for chevron */
 }
 
 /* Chevrons for the two selects via background image */
-#qrType,
-#ecc{
+#qrType{
   background-image: var(--chev-icon);
   background-repeat: no-repeat;
   background-position: right .6rem center;
@@ -711,17 +805,6 @@ textarea::placeholder{
   opacity: var(--typo-ph-opacity);
 }
 
-/* turn OFF generic :focus glow */
-#stepper .step-header:focus { box-shadow: none; }
-
-/* show the nice ring only for keyboard nav */
-#stepper .step-header:focus-visible{
-  border-color: var(--ui-stroke-hover);
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--focus-glow-blur) var(--focus-ring-color);
-}
-
 /* default: no transitions before JS marks ready */
 :not(.ui-ready) #stepper .step-header,
 :not(.ui-ready) #stepper > .step-card{
@@ -729,13 +812,39 @@ textarea::placeholder{
   box-shadow: none !important;
 }
 
-/* Mechanicals & Design: same visible body height; scroll internally */
+/* Design & Mechanicals: scroll inside a viewport-based cap that clears the footer */
 .step-card[data-step="design"].is-open [data-step-panel],
 .step-card[data-step="mechanicals"].is-open [data-step-panel]{
   overflow: auto;
-  block-size: var(--park-h); /* equalized, measured height */
-  max-height: none;          /* block-size is the cap */
+  max-height: calc(
+    100dvh
+    - var(--header-h,56px)   /* top controls if present */
+    - var(--footer-h,72px)   /* fixed footer */
+    - 24px                   /* card margins/breathing */
+  );
   overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-stroke-hover) transparent;
+}
+
+/* Base pill styles (no display here) */
+.step-card[data-step="mechanicals"] .step-header-wrap #eccPill.ecc-pill {
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--density-gap);
+  margin-left: auto;
+  padding-right: var(--edge-gutter);
+}
+
+/* Hide when stowed */
+.step-card[data-step="mechanicals"]:not(.is-open) #eccPill {
+  display: none !important;
+}
+
+/* Show when open */
+.step-card[data-step="mechanicals"].is-open #eccPill {
+  display: flex !important;
 }
 
 /* =========================
@@ -869,7 +978,7 @@ textarea::placeholder{
 }
 
 /* =========================
-   FOOTER
+  FOOTER
 ========================= */
 /* ===== Footer ===== */
 .app-footer{
@@ -1028,3 +1137,24 @@ label:has(input[type="color"]) input[type="text"]{
 label:has(input[type="color"]) input[type="color"]{
   margin-inline-start: .25rem;
 }
+
+/* Buttons on the band (not transparent), clean circles, no underline */
+.step-card[data-step="mechanicals"] .step-header-wrap #eccPill .ecc-btn:not([aria-pressed="true"]) {
+  display: inline-flex; align-items: center; justify-content: center;
+  inline-size: 1.75rem; block-size: 1.75rem; aspect-ratio: 1/1;
+  border-radius: 50% !important; padding: 0;
+  background: color-mix(in srgb, var(--md-sys-color-surface-variant) 85%, white 15%);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+  text-decoration: none !important;     /* kill underline in all states */
+}
+
+/* Band pill — pressed (token-driven) */
+.step-card[data-step="mechanicals"] .step-header-wrap #eccPill .ecc-btn[aria-pressed="true"]{
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* Dim the text on "QR Types" */
+#qrType.is-placeholder { color: var(--typo-ph-color, rgba(160,160,160,.65)); }
