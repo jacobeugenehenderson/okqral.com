@@ -43,8 +43,9 @@ html.dark { color-scheme: dark; }
 html.light { color-scheme: light; }
 
 /* Mirror tokens whether the class is on <html> (html.light) or :root.light */
+/* LIGHT MODE */
 html.light, :root.light {
-  /* Light overrides — keep in sync with your existing :root.light values */
+  /* Light overrides — keep in sync with your existing values */
   --md-sys-color-background:      #fafafa;
   --md-sys-color-on-background:   #0b0b0b;
   --md-sys-color-surface:         #ffffff;
@@ -52,16 +53,15 @@ html.light, :root.light {
   --md-sys-color-surface-variant: #f1f1f6;
   --md-sys-color-outline:         rgba(110,90,210,.35);
   --md-sys-color-outline-variant: rgba(110,90,210,.55);
-  --brand-s: 86%;
-  --brand-l: 54%;
+
   --ui-surface:         var(--md-sys-color-surface);
   --ui-surface-variant: var(--md-sys-color-surface-variant);
   --ui-stroke:          var(--md-sys-color-outline);
   --ui-stroke-hover:    var(--md-sys-color-outline-variant);
   --ui-focus-ring:      var(--md-sys-color-primary);
   --ui-glow-color:      var(--md-sys-color-primary);
-  /*--edge-gutter: clamp(24px, 1.5vw, 24px);*/
-  --md-sys-color-on-primary: #ffffff;
+
+  --md-sys-color-on-primary: #0B0715;  /* single authoritative light-mode ink */
 }
 
 :root{
@@ -72,7 +72,8 @@ html.light, :root.light {
   --md-sys-color-primary: hsl(var(--brand-h) var(--brand-s) var(--brand-l));
   --md-sys-color-primary-hover: color-mix(in oklab, var(--md-sys-color-primary) 86%, white);
   --md-sys-color-primary-pressed: color-mix(in oklab, var(--md-sys-color-primary) 80%, black);
-  --md-sys-color-on-primary: #0B0715;
+  --md-sys-color-on-primary: #ffffff;
+  
 
   /* Typography */
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
@@ -525,6 +526,41 @@ body.kbd .ecc-btn[aria-pressed="true"] {
   box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
 }
 
+/* Design (open): unified stripe and no duplicate borders (mirror of Mechanicals) */
+.step-card[data-step="design"].is-open .step-header-wrap{
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
+  border-bottom: 0 !important;
+  position: relative;
+}
+.step-card[data-step="design"].is-open .step-header{ background: transparent !important; border-bottom: 0 !important; }
+.step-card[data-step="design"].is-open .step-header-wrap::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px; background:var(--ui-stroke); pointer-events:none;
+}
+.step-card[data-step="design"]:not(.is-open) #fontPill{ display:none !important; }
+.step-card[data-step="design"].is-open       #fontPill{ display:flex !important; }
+.step-card[data-step="design"] .step-header-wrap #fontPill.ecc-pill{
+  align-items:center; flex-wrap:nowrap; gap:var(--density-gap); margin-left:auto; padding-right:var(--edge-gutter);
+}
+
+/* Font pill alignment */
+.step-card[data-step="design"] .step-header-wrap{
+  display:flex;                    /* mirror Mechanicals */
+  align-items:center;              /* vertical centering */
+  gap:.5rem;
+}
+
+/* Let the title take the left; pill pushes right (mirrors [data-step-toggle] rule) */
+.step-card[data-step="design"] .step-header-wrap [data-step-toggle]{
+  flex:1 1 auto;
+  padding-right:0;
+}
+
+/* Hide when stowed; show when open (mirror of ECC) */
+.step-card[data-step="design"]:not(.is-open) #fontPill { display: none !important; }
+.step-card[data-step="design"].is-open #fontPill     { display: flex !important;
+}
+
+
 /* =========================
    4. CONTROLS (inputs/selects/Menu)
 ========================= */
@@ -605,6 +641,37 @@ select.rounded-md,
   transition:
     box-shadow var(--motion-duration-1) var(--motion-ease),
     border-color var(--motion-duration-1) var(--motion-ease);
+}
+
+#fontPill select {
+  display: inline-flex;
+  align-items: center;          /* vertical centering */
+  justify-content: center;      /* horizontal centering */
+  text-align: center;
+  line-height: 1;               /* eliminate font baseline drift */
+  height: var(--density-control-h);
+  padding-inline: 1rem;
+}
+
+/* Make top-bar controls feel like .ecc-btn on hover/focus/active */
+.topctl:hover,
+#qrType:hover,
+#appMenuBtn:hover,
+.topctl:focus-visible,
+#qrType:focus-visible,
+#appMenuBtn:focus-visible{
+  background: rgba(255,255,255,.08); /* mirrors .ecc-btn hover */
+  transform: translateY(-1px);
+  outline: none;
+}
+
+/* Active/click state parity with your focus ring tokens */
+.topctl:active,
+#qrType:active,
+#appMenuBtn:active{
+  transform: translateY(0);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+  border-color: var(--md-sys-color-primary);
 }
 
 /* Emoji picker buttons */
@@ -1310,4 +1377,9 @@ label:has(input[type="color"]) input[type="color"]{
   text-align: center;
   line-height: 1;          /* remove baseline drift */
   vertical-align: middle;  /* ensure inline alignment with neighbors */
+}
+
+/* Temporarily hide the SVG export toggle in the Finish step */
+.step-card[data-step="finish"] label:has(#wantSvg) {
+  display: none !important;
 }

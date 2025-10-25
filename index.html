@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>🤠 okQRal</title>
 
+
 <script>
 (function () {
   const ls = localStorage.getItem('theme');                 // 'dark' | 'light' | null
@@ -17,11 +18,35 @@
 })();
 </script>
 
-  <!-- Fonts & Tailwind -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
- 
+<!-- Fonts & Tailwind -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=Bebas+Neue&family=Public+Sans:wght@400;600&family=Playfair+Display:wght@400;600&family=Space+Grotesk:wght@400;600&family=Manrope:wght@400;600&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<script>
+  // Use class strategy so toggling `.dark` works
+  window.tailwind = window.tailwind || {};
+  tailwind.config = { darkMode: 'class' };
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="./styles/theme.css">
+
+  <!-- === Google Fonts (Work Sans + Preview Families) === -->
+  <link
+  href="https://fonts.googleapis.com/css2
+  ?family=Work+Sans:wght@400;500;600;700
+  &family=IBM+Plex+Sans:wght@400;600
+  &family=IBM+Plex+Serif:wght@400;600
+  &family=Bebas+Neue
+  &family=Public+Sans:wght@400;600
+  &family=Playfair+Display:wght@400;600
+  &family=Space+Grotesk:wght@400;600
+  &family=Manrope:wght@400;600
+  &family=Inter:wght@400;600
+  &family=JetBrains+Mono:wght@400;600
+  &display=swap"
+    rel="stylesheet">
+     
  <script>
   // Use class strategy so toggling `.dark` works
   window.tailwind = window.tailwind || {};
@@ -122,10 +147,30 @@
 <!-- Design -->
 <div class="step-card rounded-2xl border border-neutral-200 bg-white dark:bg-neutral-900 dark:border-neutral-800"
      data-step="design">
-  <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
-    Design
-  </button>
 
+    <!-- Header wrapper (font pill lives here, matching ECC structure) -->
+    <div class="step-header-wrap">
+      <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
+        Design
+      </button>
+
+    <!-- Font pill -->
+    <div id="fontPill" class="ecc-pill" role="group" aria-label="Preview font">
+      <label class="text-sm sr-only" for="fontFamily">Preview font</label>
+      <select id="fontFamily" class="topctl topctl--chev text-sm" aria-label="Preview font">
+        <option value="IBM Plex Sans">IBM Plex Sans</option>
+        <option value="IBM Plex Serif">IBM Plex Serif</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Public Sans">Public Sans</option>
+        <option value="Playfair Display">Playfair Display</option>
+        <option value="Space Grotesk">Space Grotesk</option>
+        <option value="Manrope">Manrope</option>
+        <option value="Inter">Inter</option>
+        <option value="JetBrains Mono">JetBrains Mono</option>
+        <option value="Work Sans">Work Sans</option>
+      </select>
+    </div>
+  </div>
   <!-- Closed by default -->
   <div class="px-4 pb-4 space-y-4" data-step-panel style="display:none">
     <!-- Color quadrant -->
@@ -301,7 +346,7 @@
 
       <button id="exportBtn" type="button"
               class="ml-auto px-4 py-2 rounded-lg bg-black text-white text-sm">
-        Generate
+        ✨
       </button>
     </div>
   </div>

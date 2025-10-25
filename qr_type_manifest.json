@@ -69,6 +69,7 @@
       {
         "name": "LET'S GO!",
         "campaign": "LET'S GO",
+        "fontFamily": "Bebas Neue",
         "captionColor": "#26282C",
         "bodyColor": "#444B55",
         "eyeRingColor": "#999999",
@@ -88,6 +89,7 @@
       {
         "name": "LOVE",
         "campaign": "LOVE",
+        "fontFamily": "Inter",
         "captionColor": "#485C0F",
         "bodyColor": "#204023",
         "eyeRingColor": "#BF2A31",
@@ -107,6 +109,7 @@
       {
         "name": "LOVE",
         "campaign": "LOVE",
+        "fontFamily": "Work Sans",
         "captionColor": "#000000",
         "bodyColor": "#111111",
         "eyeRingColor": "#919191",
@@ -128,6 +131,7 @@
       {
         "name": "SUPPORT",
         "campaign": "SUPPORT",
+        "fontFamily": "IBM Plex Sans",
         "captionColor": "#F0F0F0",
         "bodyColor": "#707070",
         "eyeRingColor": "#FFFFFF",
@@ -147,6 +151,7 @@
       {
         "name": "PAY",
         "campaign": "PAY",
+        "fontFamily": "IBM Plex Serif",
         "captionColor": "#312B2B",
         "bodyColor": "#000000",
         "eyeRingColor": "#028802",
@@ -166,6 +171,7 @@
       {
         "name": "GIVE",
         "campaign": "GIVE",
+        "fontFamily": "JetBrains Mono",
         "captionColor": "#112950",
         "bodyColor": "#000000",
         "eyeRingColor": "#1D4587",
@@ -187,6 +193,7 @@
       {
         "name": "CONNECT",
         "campaign": "CONNECT",
+        "fontFamily": "Manrope",
         "captionColor": "#334757",
         "bodyColor": "#6F9AC8",
         "eyeRingColor": "#789ABA",
@@ -206,6 +213,7 @@
       {
         "name": "JOIN",
         "campaign": "JOIN",
+        "fontFamily": "Public Sans",
         "captionColor": "#61A5FB",
         "bodyColor": "#000000",
         "eyeRingColor": "#60a5fa",
@@ -227,6 +235,7 @@
       {
         "name": "HELLO",
         "campaign": "HELLO",
+        "fontFamily": "Space Grotesk",
         "captionColor": "#000000",
         "bodyColor": "#111111",
         "eyeRingColor": "#111111",
@@ -246,6 +255,7 @@
       {
         "name": "HEY",
         "campaign": "HEY",
+        "fontFamily": "Playfair Display",
         "captionColor": "#000000",
         "bodyColor": "#000000",
         "eyeRingColor": "#888888",
@@ -267,6 +277,7 @@
       {
         "name": "YES",
         "campaign": "YES",
+        "fontFamily": "Bebas Neue",
         "captionColor": "#302403",
         "bodyColor": "#04860D",
         "eyeRingColor": "#4B3A0B",
@@ -286,6 +297,7 @@
       {
         "name": "NO",
         "campaign": "NO",
+        "fontFamily": "Inter",
         "captionColor": "#000000",
         "bodyColor": "#000000",
         "eyeRingColor": "#C72300",
@@ -302,9 +314,10 @@
         "centerEmoji": "🚫",
         "centerScale": 1
       },
-{
+      {
         "name": "GO STEADY?",
         "campaign": "GO STEADY?",
+        "fontFamily": "Work Sans",
         "captionColor": "#302403",
         "bodyColor": "#FF99C2",
         "eyeRingColor": "#8C083D",
@@ -320,12 +333,13 @@
         "centerMode": "Emoji",
         "centerEmoji": "💝",
         "centerScale": 0.95
-      }      
+      }
     ],
-    "Event": [     
+    "Event": [
       {
         "name": "TACO TUESDAY",
         "campaign": "TACO TUESDAY",
+        "fontFamily": "IBM Plex Sans",
         "captionColor": "#4E1009",
         "bodyColor": "000000",
         "eyeRingColor": "#175606",
@@ -345,6 +359,7 @@
       {
         "name": "THE BIG SHOW",
         "campaign": "THE BIG SHOW",
+        "fontFamily": "IBM Plex Serif",
         "captionColor": "#4E1009",
         "bodyColor": "000000",
         "eyeRingColor": "#000000",
@@ -360,10 +375,11 @@
         "centerMode": "Emoji",
         "centerEmoji": "🎟️",
         "centerScale": 1
-      },      
+      },
       {
         "name": "FREEDOM",
         "campaign": "FREEDOM",
+        "fontFamily": "JetBrains Mono",
         "captionColor": "#4E1009",
         "bodyColor": "000000",
         "eyeRingColor": "#578109",
@@ -379,12 +395,13 @@
         "centerMode": "Emoji",
         "centerEmoji": "🍉",
         "centerScale": 1
-      }      
+      }
     ],
     "Map": [
       {
         "name": "BODY",
         "campaign": "BODY",
+        "fontFamily": "Manrope",
         "captionColor": "#000000",
         "bodyColor": "#000000",
         "eyeRingColor": "#444444",
@@ -400,7 +417,7 @@
         "centerMode": "Emoji",
         "centerEmoji": "💬",
         "centerScale": 0.85
-      }      
+      }
     ]
   }
 }

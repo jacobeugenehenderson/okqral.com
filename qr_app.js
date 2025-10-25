@@ -120,6 +120,68 @@ function wireECCLegacySelect(){
   wireECCLegacySelect._done = true;
 }
 /* === END ECC ===================================================== */
+
+/* === Preview Font (session-persistent) ============================ */
+const FONT_KEY     = 'okqral_font';
+const FONT_DEFAULT = "'Work Sans', system-ui, sans-serif";
+
+// === Utility: Font helpers ===
+function getPreviewFont() {
+  const host = document.getElementById('qrPreview');
+  return getComputedStyle(host || document.body).fontFamily;
+}
+
+function getFont(){
+  return sessionStorage.getItem(FONT_KEY) || FONT_DEFAULT;
+}
+
+function setFont(val){
+  const v = (val || '').trim() || FONT_DEFAULT;
+  sessionStorage.setItem(FONT_KEY, v);
+
+  const sel = document.getElementById('fontFamily');
+  if (sel) {
+    sel.value = v;                 // always set
+    sel.style.fontFamily = v;      // always paint
+  }
+
+  const preview = document.getElementById('qrPreview');
+  if (preview) preview.style.fontFamily = v;
+
+  // Optional: ensure metrics are ready before render (prevents caption reflow)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => typeof render === 'function' && render());
+  } else if (typeof render === 'function') {
+    render();
+  }
+}
+
+function wireFontSelect(){
+  const sel = document.getElementById('fontFamily');
+  if (!sel || wireFontSelect._done) return;
+
+  // Make each option preview in its own face
+  Array.from(sel.options).forEach(opt => {
+    // each <option> has the full stack as its value
+    opt.style.fontFamily = opt.value;
+    opt.style.fontWeight = '600'; // keeps visual parity with pills
+  });
+
+  // When the user changes the selection, reflect everywhere
+  sel.addEventListener('change', () => {
+    setFont(sel.value);             // persists + updates preview + value
+    sel.style.fontFamily = sel.value; // paint the button in that face
+  });
+
+  // Initialize from session or default and paint the control
+  const initial = sel.value || getFont();
+  setFont(initial);                  // calls render()
+  sel.style.fontFamily = initial;
+
+  wireFontSelect._done = true;
+}
+
+document.addEventListener('DOMContentLoaded', wireFontSelect);
     
     // -------- Emoji picker (catalog + search) --------
     const EMOJI_BIG = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","🙂","🙃","☺️","😋","😌","😍","🥰","😘","😗","😙","😚","😜","🤪","😝","😛","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😶‍🌫️","😏","😒","🙄","😬","🤥","😴","😪","😮‍💨","😌","😮","😯","😲","😳","🥵","🥶","😱","😨","😰","😥","😢","😭","😤","😡","😠","🤬","🤯","😷","🤒","🤕","🤢","🤮","🤧","🥴","😵","😵‍💫","🤠","🥳","😎","🤓","🧐","😕","🫤","😟","🙁","☹️","🤷","🤷‍♂️","🤷‍♀️","💪","👋","🤝","👍","👎","👏","🙌","👐","🤲","🤟","✌️","🤘","👌","🤌","🤏","👈","👉","☝️","👆","👇","✋","🖐️","🖖","✊","👊","💋","❤️","🩷","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","🌈","🏳️‍🌈","🏳️‍⚧️","⭐️","✨","🔥","⚡️","💥","🌟","☀️","🌙","🪐","🌍","🌎","🌏","🌊","⛰️","🏙️","🗽","🚗","✈️","🚀","⌚️","📱","💻","🖥️","🖨️","🎧","🎤","🎬","📷","📸","📝","📚","🔖","📎","🔬","🔧","⚙️","🍎","🍉","🍇","🍓","🍑","🍍","🥑","🌮","🍣","🍰","🍫","🍩","🍿","🍺","🍷","🍸","🎉","🎊","🎈","🎮","🎯","🏆","🏵️","✊🏿","✊🏾","✊🏽","✊🏼","✊🏻","👍🏿","👍🏾","👍🏽","👍🏼","👍🏻","👋🏿","👋🏾","👋🏽","👋🏼","👋🏻","🏁","🚩","🏳️","🏴","🏳️‍🌈","🏳️‍⚧️","🇺🇸","🇨🇦","🇬🇧","🇫🇷","🇩🇪","🇮🇹","🇪🇸","🇧🇷","🇯🇵","🇰🇷","🇨🇳","🇮🇳","🇿🇦"];
@@ -352,10 +414,6 @@ window.getPresets = (t) => {
 const presetsByType = manifest.presets || {};
 const currentPresetIdx = new Map();
 
-function getPresets(type) {
-  const list = presetsByType[type];
-  return Array.isArray(list) ? list : [];
-}
 
 function setValAndFire(id, value) {
   const el = document.getElementById(id);
@@ -377,6 +435,7 @@ function applyPreset(type, index = 0) {
   const idx = ((index % list.length) + list.length) % list.length;
   currentPresetIdx.set(type, idx);
   const p = list[idx];
+    if (p.fontFamily) setFont(p.fontFamily);
 
   // ✅ Always load caption from the selected preset
   setCaptionFromPreset(p, type);
@@ -1291,7 +1350,7 @@ function composeCardSvg({
 
   const layout = layoutCaptionLines(NS, {
     text: captionText || '',
-    family: getComputedStyle(document.body).fontFamily,
+    family: getPreviewFont(),
     weight: '600',
     maxWidth: capWidth,
     maxLines: 2,
@@ -1306,7 +1365,7 @@ function composeCardSvg({
   if (neededH > capMaxH && layout.fontSize > minSize) {
     const layout2 = layoutCaptionLines(NS, {
       text: captionText || '',
-      family: getComputedStyle(document.body).fontFamily,
+      family: getPreviewFont(),
       weight: '600',
       maxWidth: capWidth,
       maxLines: 2,
@@ -1331,7 +1390,7 @@ function composeCardSvg({
       t.setAttribute('font-size', String(layout.fontSize));
       t.setAttribute('font-weight', '600');
       t.setAttribute('fill', captionColor || '#000');
-      t.setAttribute('font-family', getComputedStyle(document.body).fontFamily);
+      t.setAttribute('font-family', getPreviewFont());
       t.textContent = ln;
       svg.appendChild(t);
     });
@@ -1412,15 +1471,14 @@ requestAnimationFrame(() => {
   });
 }
 
-document.getElementById('modulesMode')?.addEventListener('change', () => { refreshModulesMode?.(); render(); });
 document.getElementById('modulesMode')?.addEventListener('change', () => {
   sendEvent('modules_mode', currentUiState());
 });
-document.getElementById('centerMode')?.addEventListener('change',  () => { refreshCenter?.();     render(); });
+
 document.getElementById('centerMode')?.addEventListener('change', () => {
   sendEvent('center_mode', currentUiState());
 });
-document.getElementById('bgTransparent')?.addEventListener('change', () => { refreshBackground?.(); render(); });
+
 document.getElementById('bgTransparent')?.addEventListener('change', () => {
   const transparent = !!document.getElementById('bgTransparent')?.checked;
   sendEvent('bg_mode', { transparent, ...currentUiState() });
@@ -1694,18 +1752,6 @@ function wireDesignGatesOnce() {
 
   wireDesignGatesOnce._done = true;
 }
-
-// ---- Stable boot: after DOM and at next frame
-window.addEventListener('DOMContentLoaded', () => {
-  const mount   = document.getElementById('qrMount');
-  const preview = document.getElementById('qrPreview');
-
-  requestAnimationFrame(() => {
-    if (typeof render === 'function') render();
-  });
-});
-
-document.documentElement.classList.add('ui-ready');
 
 // ----------------------------------------------------------
 // Helper: add phone background to a *copy* of the SVG for export
@@ -2087,19 +2133,6 @@ function openOnly(index, opts = {}) {
 
   // Initial state (Caption open)
   openOnly(0); 
-})();
-
-// --- Safe boot: wait until both QRCode and render() exist ---
-(function boot(tries = 0) {
-  if (window.QRCode && typeof window.render === "function") {
-    console.log("✅ booting render()");
-    return window.render();
-  }
-  if (tries > 150) {
-    console.error("Still waiting for QRCode/render() — check script order.");
-    return;
-  }
-  setTimeout(() => boot(tries + 1), 80);
 })();
 
 // =======================================================
