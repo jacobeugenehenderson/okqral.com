@@ -51,7 +51,7 @@
         <label class="text-sm">
           <span class="sr-only">Type</span>
           <select id="qrType" class="topctl topctl--chev text-sm" aria-label="Type">
-            <option value="" disabled selected hidden>QR Types</option>
+            <option value="" disabled selected hidden>💖</option>
             <option>URL</option>
             <option>Payment</option>
             <option>WiFi</option>
@@ -441,36 +441,37 @@ new MutationObserver(() => applyPickerTheme())
 <!-- App Menu Modal -->
 <div id="appModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4"
      role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
-  <div class="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900
-            border border-neutral-200 dark:border-neutral-800 shadow-lg
-            relative m-auto">
-    <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
-      <h2 id="appModalTitle" class="text-sm font-medium">Menu</h2>
-      <button id="appClose" class="ml-auto px-3 py-2 rounded-md text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800">
-        Close
-      </button>
-    </div>
-    <div class="p-2 static" role="menu" aria-labelledby="appMenuBtn">
-      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+  <div class="w-full max-w-md step-card border rounded-2xl overflow-hidden m-auto">
+
+<!-- Modal header styled like step-cards -->
+<div class="flex items-center justify-end px-4 py-3 border-b border-[color:var(--featured-stroke-color)] dark:border-[color:var(--featured-stroke-color)]">
+  <button id="appClose"
+          class="w-8 h-8 grid place-items-center rounded-full 
+                 hover:bg-[color-mix(in_oklab,var(--md-sys-color-primary)20%,transparent)]
+                 dark:hover:bg-[color-mix(in_oklab,var(--md-sys-color-primary)25%,transparent)]
+                 focus:outline-none focus:ring-1 focus:ring-[color:var(--md-sys-color-primary)]
+                 transition"
+          title="Close menu"
+          aria-label="Close menu">
+    <span class="text-lg leading-none">✕</span>
+  </button>
+</div>
+
+    <!-- Centered menu items -->
+    <div class="p-2 static text-center" role="menu" aria-labelledby="appMenuBtn">
+      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
               role="menuitem" data-open="aboutApp">About this app</button>
-      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
               role="menuitem" data-open="aboutQR">About QR Codes</button>
-      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
               role="menuitem" data-open="privacy">Privacy</button>
-      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
               role="menuitem" data-open="legal">Legal / Disclaimer</button>
 
-      <!-- Dark-mode toggle preserved -->
+      <!-- Dark-mode toggle (connected to global JS) -->
       <button id="themeToggle" role="menuitem" type="button"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
-                     focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
-              onclick="(function(){
-                const r = document.documentElement;
-                const next = r.classList.contains('dark') ? 'light' : 'dark';
-                r.classList.remove('dark','light');
-                r.classList.add(next);
-                localStorage.setItem('theme', next);
-              })()">
+              class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
+                     focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-2">
         <span class="mi">🌙</span>
         <span>Toggle Dark Mode</span>
       </button>

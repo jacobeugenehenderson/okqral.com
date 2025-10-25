@@ -43,6 +43,14 @@ toggle && toggle.addEventListener('click', () => {
   setTheme(!root.classList.contains('dark'));
 });
 
+// Allow any existing button to act as the theme toggle
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-theme-toggle], .js-theme-toggle');
+  if (!btn) return;
+  e.preventDefault();
+  setTheme(!document.documentElement.classList.contains('dark')); // uses established logic
+});
+
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
 mq.addEventListener?.('change', (e) => {
   if (!('theme' in localStorage)) setTheme(e.matches);
@@ -1444,6 +1452,43 @@ if (document.readyState === 'loading') {
   boot();
 }
 
+// --- Initial global gate: everything off until a QR Type is chosen ---
+(function gateUntilTypeChosen(){
+  const typeSel = document.getElementById('qrType');
+  const stepper = document.getElementById('stepper');
+
+  // All interactive controls outside the top bar that should start disabled:
+  const targets = () => [
+    ...stepper.querySelectorAll('input, select, textarea, button'),
+    ...document.querySelectorAll('.nav-arrow') // prev/next arrows by the preview
+  ];
+
+  function setDisabled(allOff){
+    // Visual mute for the whole right column (blocks clicks too via CSS)
+    stepper.classList.toggle('field-muted', allOff);
+    // Flip the actual disabled state on all form-ish controls
+    targets().forEach(el => { el.disabled = allOff; });
+  }
+
+  // 🔴 Add the start-here highlight on first load if empty
+  if (typeSel && !typeSel.value) typeSel.classList.add('start-here');
+
+  // If nothing picked, lock it down; otherwise, proceed normally
+  const hasType = !!typeSel?.value;
+  setDisabled(!hasType);
+
+  // First real action: selecting a type unlocks everything and wires design gates
+  typeSel?.addEventListener('change', () => {
+    typeSel.classList.remove('start-here'); // remove highlight once chosen
+    setDisabled(false);
+    // Hand off to your existing, granular “Design” section gating
+    if (typeof wireDesignGatesOnce === 'function') wireDesignGatesOnce();
+  }, { once: true, passive: true });
+
+  // If a type is already present (e.g., hot reload), ensure gates wire up
+  if (hasType && typeof wireDesignGatesOnce === 'function') wireDesignGatesOnce();
+})();
+
   // Toggle visual style on the preview card (for CSS glow/inset)
 function render() {
   const preview = document.getElementById('qrPreview');
@@ -2022,12 +2067,6 @@ function openOnly(index, opts = {}) {
     // keep Caption & Finish free of inner scroll
     p.classList.remove('scroll-frame');
     p.style.maxHeight = '';
-
-    const isBig = isOpen && i > 0 && i < panels.length - 1;
-    if (isBig) {
-      p.classList.add('scroll-frame');
-      p.style.maxHeight = computeMaxPanelHeight() + 'px';
-    }
   });
 
   // Optional: keep focus sensible

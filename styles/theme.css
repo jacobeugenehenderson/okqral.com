@@ -266,10 +266,28 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   background: color-mix(in oklab, var(--md-sys-color-primary) 6%, transparent);
 }
 
-/* Mechanicals: header stripe is painted by the WRAP */
+/* Mechanicals (open): unified stripe and no duplicate borders */
 .step-card[data-step="mechanicals"].is-open .step-header-wrap {
   background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
-  border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
+  border-bottom: 0 !important;
+  position: relative;
+}
+
+.step-card[data-step="mechanicals"].is-open .step-header {
+  background: transparent !important;
+  border-bottom: 0 !important;
+}
+
+/* Single thin rule painted behind ECC pill (visual match with Caption) */
+.step-card[data-step="mechanicals"].is-open .step-header-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--ui-stroke);
+  pointer-events: none;
 }
 
 /* Remove the button’s own stripe so there’s no seam */
@@ -296,24 +314,8 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   overflow:auto;
   gap: var(--stack-gap);
   min-width:0; width:100%; max-width:720px; margin-inline:auto;
-  scroll-padding-top: calc(var(--header-h,56px) + 8px);
+  scroll-padding-top: calc(var(--header-h,56px) + 2px);
   padding-bottom: calc(var(--footer-h,72px) + 8px); /* reserve for fixed footer */
-}
-
-/* Finish parks just above the footer padding inside #stepper */
-.step-card[data-step="finish"]{
-  position: sticky;
-  bottom: calc(var(--footer-h,72px) + 8px);
-  z-index: 40; /* above .app-footer’s z-index */
-  backdrop-filter: saturate(1.1);
-  border-top: 1px solid color-mix(in oklab, var(--md-sys-color-outline) 65%, transparent);
-}
-
-/* Optional: tighten the gap on very tall layouts so it doesn't look lost */
-@media (min-height: 900px) {
-  .step-card[data-step="finish"] {
-    --finish-gap: 3.5rem;
-  }
 }
 
 #captionEl{
@@ -774,6 +776,16 @@ textarea::placeholder{
   scrollbar-color: var(--ui-stroke-hover) transparent;
 }
 
+/* Mechanicals: no internal scroller; let #stepper scroll instead */
+.step-card[data-step="mechanicals"].is-open [data-step-panel]{
+  overflow: visible !important;
+  max-height: none !important;
+  overscroll-behavior: auto;       /* release containment */
+  scrollbar-gutter: auto;
+  scrollbar-width: none;           /* hide any vestigial bar in Firefox */
+}
+.step-card[data-step="mechanicals"].is-open [data-step-panel]::-webkit-scrollbar { display: none; }
+
 /* Base pill styles (no display here) */
 .step-card[data-step="mechanicals"] .step-header-wrap #eccPill.ecc-pill {
   align-items: center;
@@ -791,6 +803,12 @@ textarea::placeholder{
 /* Show when open */
 .step-card[data-step="mechanicals"].is-open #eccPill {
   display: flex !important;
+}
+
+/* Kill any competing header paint so the wrap shows through */
+.step-card[data-step="mechanicals"].is-open .step-header {
+  background: transparent !important;  /* beats #stepper>div.is-open .step-header */
+  border-bottom: 0;
 }
 
 /* =========================
@@ -826,7 +844,7 @@ textarea::placeholder{
   border-radius: var(--phone-radius); /* stroke */
   background: transparent;
   overflow: clip;               /* ← confine fill and children to radius */
-  box-shadow: 0 12px 32px rgba(0,0,0,.35); /* replace filter drop-shadow */
+  box-shadow: none; /* replace filter drop-shadow */
   /* filter: drop-shadow(...)  ← remove this */
 }
 
@@ -863,8 +881,86 @@ textarea::placeholder{
   border-radius: inherit;
 }
 
+/* --- Single-column layout (< 1280px): lock preview; stepper flows behind --- */
+@media (max-width: 1279px) {
+  /* Raise the preview section above the stepper */
+  main > section.stage-stick:first-of-type {
+    position: sticky;
+    z-index: 20; /* keep phone above accordion */
+    top: calc(var(--header-h, 56px) + var(--stack-gap)); /* was + 8px */
+  }
+
+  /* Opaque plate so the stepper can't show through the phone's transparent areas */
+  .preview-stage::before {
+    content: "";
+    position: absolute;
+    inset: -12px -18px;               /* slightly larger than the phone card */
+    border-radius: var(--phone-radius, 20px);
+    background: var(--md-sys-color-background);
+    z-index: 0;                       /* sits under the phone/arrows inside stage */
+  }
+
+  .preview-stage,
+  #qrPreview,
+  #prevSubtype,
+  #nextSubtype { z-index: 1; }
+
+  /* Let the stepper slide under the preview */
+  #stepper {
+    position: relative;
+    z-index: 1;                       /* below the raised preview section */
+  }
+}
+
+/* Stop pinning/parallax on Finish; let it flow like others */
+.step-card[data-step="finish"]{
+  position: static !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  backdrop-filter: none !important;
+  border-top: 1px solid var(--ui-stroke);
+}
+
+@media (max-width: 1279px) {
+  .preview-stage::before {
+    /* pull the plate in so less shadow is visible */
+    inset: 0;                               /* was a negative inset */
+    border-radius: var(--phone-radius, 20px);
+  }
+}
+
+/* --- Stacked layout (< xl): keep Caption below the phone, stay level on desktop --- */
+@media (max-width: 1279px) {
+  :root{
+    /* one knob = how far the stepper tucks under the phone */
+    --preview-overlap: 00px;   /* try 140–200px to taste */
+    --preview-gap: 0px;        /* clear space between phone and Caption */
+  }
+
+  /* stepper still scrolls behind the phone… */
+  #stepper{
+    margin-top: calc(var(--preview-overlap) * -1);       /* creates the overlap */
+    padding-top: calc(var(--preview-overlap) + var(--preview-gap));
+    /* ← pushes the first card down so its top is beneath the phone */
+  }
+
+  /* (optional) ensure no extra spacing sneaks in above the first card */
+  #stepper > .step-card:first-child{ margin-top: 0; }
+}
+
+/* --- Single-column layout: park the stepper under the preview by --stack-gap --- */
+@media (max-width: 1279px) {
+  /* The grid container’s row gap becomes the parking distance */
+  main { row-gap: var(--stack-gap) !important; }
+
+  /* Preview’s sticky offset also honors the same parking distance */
+  .stage-stick:first-of-type { 
+    top: calc(var(--header-h, 56px) + var(--stack-gap));
+  }
+}
+
 /* =========================
-   ARROWS
+   6. ARROWS
 ========================= */
 .nav-arrow{
   background: var(--ui-surface);
@@ -1170,15 +1266,6 @@ label:has(input[type="color"]) input[type="color"]{
   border-radius: var(--shape-corner-full); /* full circle */
 }
 
-/* Hover / focus flair */
-#qrType:hover,
-body.kbd #qrType:focus-visible {
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 10px color-mix(in oklab, var(--md-sys-color-primary) 40%, transparent);
-  background: color-mix(in oklab, var(--ui-surface) 75%, var(--md-sys-color-primary) 25%);
-}
-
 /* === QR Types: show the custom chevron === */
 #qrType {
   -webkit-appearance: none;
@@ -1190,52 +1277,28 @@ body.kbd #qrType:focus-visible {
   background-size: .75rem .75rem;
 }
 
-/* The hamburger has NO chevron */
-#appMenuBtn::after { content: none !important; }
-
-#qrType:hover,
+/* Types Hover for Pills (shared) */
+*#qrType:hover,
 #appMenuBtn:hover {
   box-shadow:
     0 0 0 1px var(--ui-stroke-hover) inset,
     0 0 var(--hover-glow-blur) var(--hover-glow-color);
-}
-
-body.kbd #qrType:focus-visible,
-body.kbd #appMenuBtn:focus-visible {
-  border-color: var(--ui-stroke-hover);
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--focus-glow-blur) var(--focus-ring-color);
-}
-
-/* Hover / keyboard focus = same as hamburger */
-#qrType:hover,
-#appMenuBtn:hover {
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--hover-glow-blur) var(--hover-glow-color);
-}
-body.kbd #qrType:focus-visible,
-body.kbd #appMenuBtn:focus-visible {
-  border-color: var(--ui-stroke-hover);
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--focus-glow-blur) var(--focus-ring-color);
-}
-
-/* === QR Types: restore the chevron (only here) ======================== */
-#qrType {
-  -webkit-appearance: none;
-          appearance: none;
-  padding-right: 2rem;                /* room for chevron */
-  background-image: var(--chev-icon);
-  background-repeat: no-repeat;
-  background-position: right .65rem center;
-  background-size: .75rem .75rem;
 }
 
 /* === Hamburger: no chevron; keep icon centered ======================== */
 #appMenuBtn::after { content: none !important; }
 #appMenuBtn {
   padding-inline: 1rem;               /* same side padding as QR Types */
+}
+
+/* ==========================================================
+   START-HERE HIGHLIGHT  (active until a QR Type is chosen)
+   ========================================================== */
+#qrType.start-here {
+  outline: 2px solid #ff5555;            /* vivid red ring */
+  outline-offset: 3px;
+  box-shadow:
+    0 0 6px rgba(255, 85, 85, 0.7),
+    0 0 12px rgba(255, 85, 85, 0.4);
+  border-color: #ff5555 !important;      /* keep visible even in dark mode */
 }
