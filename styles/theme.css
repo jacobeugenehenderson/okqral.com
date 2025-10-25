@@ -599,7 +599,7 @@ select.rounded-md,
   border-radius: var(--shape-corner-md);
   /* BASELINE: thin inset stroke only */
   box-shadow: 0 0 0 1px var(--ui-stroke) inset;
-  height: var(--density-control-h); 
+  height: var(--density-control-h);
   transition:
     box-shadow var(--motion-duration-1) var(--motion-ease),
     border-color var(--motion-duration-1) var(--motion-ease);
