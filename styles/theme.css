@@ -1178,7 +1178,7 @@ label:has(input[type="color"]) input[type="color"]{
 }
 
 /* Dim the text on "QR Types" */
-#qrType.is-placeholder { color: var(--typo-ph-color, rgba(160,160,160,.65)); }
+/*#qrType.is-placeholder { color: var(--typo-ph-color, rgba(160,160,160,.65)); }*/
 
 /* === Modal & legacy dropdown overrides (safe, CSS-only) ================== */
 
@@ -1295,10 +1295,19 @@ label:has(input[type="color"]) input[type="color"]{
    START-HERE HIGHLIGHT  (active until a QR Type is chosen)
    ========================================================== */
 #qrType.start-here {
-  outline: 2px solid #ff5555;            /* vivid red ring */
+  outline: 1px solid #ff5bde;            /* vivid red ring */
   outline-offset: 3px;
   box-shadow:
-    0 0 6px rgba(255, 85, 85, 0.7),
-    0 0 12px rgba(255, 85, 85, 0.4);
+    0 0 1px rgba(255, 85, 85, 0.7),
+    0 0 1px rgba(255, 85, 85, 0.4);
   border-color: #ff5555 !important;      /* keep visible even in dark mode */
+}
+
+/* Center the heart emoji in the QR Types button when it's acting as a circular icon */
+#qrType {
+  display: inline-grid;
+  place-items: center;     /* centers emoji both horizontally and vertically */
+  text-align: center;
+  line-height: 1;          /* remove baseline drift */
+  vertical-align: middle;  /* ensure inline alignment with neighbors */
 }
