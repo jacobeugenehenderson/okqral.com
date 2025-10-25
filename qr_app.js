@@ -2131,3 +2131,30 @@ function openOnly(index, opts = {}) {
     ready();
   }
 })();
+
+// --- App Menu Modal (centered) ---
+(function () {
+  const btn    = document.getElementById('appMenuBtn');
+  const modal  = document.getElementById('appModal');
+  const closer = document.getElementById('appClose');
+  if (!btn || !modal || !closer) return;
+
+  function openAppModal() {
+    modal.classList.remove('hidden');
+    const first = modal.querySelector('[role="menuitem"],button,[href],input,select,textarea');
+    if (first) first.focus();
+    btn.setAttribute('aria-expanded', 'true');
+  }
+  function closeAppModal() {
+    modal.classList.add('hidden');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.focus();
+  }
+
+  btn.addEventListener('click', (e) => { e.preventDefault(); openAppModal(); });
+  closer.addEventListener('click', closeAppModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeAppModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeAppModal();
+  });
+})();

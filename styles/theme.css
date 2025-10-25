@@ -54,14 +54,13 @@ html.light, :root.light {
   --md-sys-color-outline-variant: rgba(110,90,210,.55);
   --brand-s: 86%;
   --brand-l: 54%;
-  --chev-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='black'><path d='M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 111.04 1.08l-4.23 3.35a.75.75 0 01-.96 0L5.21 8.31a.75.75 0 01.02-1.1z'/></svg>");
   --ui-surface:         var(--md-sys-color-surface);
   --ui-surface-variant: var(--md-sys-color-surface-variant);
   --ui-stroke:          var(--md-sys-color-outline);
   --ui-stroke-hover:    var(--md-sys-color-outline-variant);
   --ui-focus-ring:      var(--md-sys-color-primary);
   --ui-glow-color:      var(--md-sys-color-primary);
-  --edge-gutter: clamp(24px, 1.5vw, 24px);
+  /*--edge-gutter: clamp(24px, 1.5vw, 24px);*/
   --md-sys-color-on-primary: #ffffff;
 }
 
@@ -565,6 +564,29 @@ select:hover{
   pointer-events:none;
 }
 
+/* === TOP BAR — text styling (only) =================================== */
+/* Restore heavier label for the pills and keep baselines consistent */
+#qrType,
+#appMenuBtn{
+  font: 600 var(--typo-input-size)/1 var(--font-family);
+  letter-spacing: .01em;
+  color: var(--md-sys-color-on-surface);
+}
+
+/* === TOP BAR — pill layout =========================================== */
+#qrType,
+#appMenuBtn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  line-height: 1;             /* prevent extra vertical space from fonts */
+  padding-inline: 1rem;       /* horizontal padding stays constant */
+}
+
+/* Safari/WebKit quirk: ensure the selected option uses the same weight */
+#qrType option { font-weight: 600; }
+
 /* Unified top-bar controls (selects + Menu) */
 .control,
 #appMenuBtn,
@@ -577,7 +599,7 @@ select.rounded-md,
   border-radius: var(--shape-corner-md);
   /* BASELINE: thin inset stroke only */
   box-shadow: 0 0 0 1px var(--ui-stroke) inset;
-  height: var(--density-control-h);
+  height: var(--density-control-h); 
   transition:
     box-shadow var(--motion-duration-1) var(--motion-ease),
     border-color var(--motion-duration-1) var(--motion-ease);
@@ -633,82 +655,6 @@ select.topctl{
   padding-right:2rem;
 }
 button.topctl{ padding-right:2rem; }
-
-/* === TOP BAR CONTROLS — unify visuals, alignment, and chevrons === */
-
-/* Baseline look + alignment */
-#qrType,
-#appMenuBtn{
-  display: inline-flex;
-  align-items: center;                 /* vertical centering */
-  gap: .5rem;
-  height: var(--density-control-h);
-  padding: 0 .875rem;
-  line-height: 1;
-  font-size: .9375rem;
-  font-weight: 600;
-
-  background: var(--ui-surface);
-  color: var(--md-sys-color-on-surface);
-  border: 1px solid var(--ui-stroke);
-  border-radius: var(--shape-corner-md);
-  box-shadow: 0 0 0 1px var(--ui-stroke) inset;   /* thin baseline stroke */
-  transition:
-    box-shadow var(--motion-duration-1) var(--motion-ease),
-    border-color var(--motion-duration-1) var(--motion-ease);
-}
-
-/* Hover: keep thin inset + add faint outer glow */
-#qrType:hover,
-#appMenuBtn:hover{
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--hover-glow-blur) var(--hover-glow-color);
-}
-
-/* Focus: thin inset + stronger glow ring */
-#qrType:focus,
-#appMenuBtn:focus{
-  outline: none;
-  border-color: var(--ui-stroke-hover);
-  box-shadow:
-    0 0 0 1px var(--ui-stroke-hover) inset,
-    0 0 var(--focus-glow-blur) var(--focus-ring-color);
-}
-
-/* Remove native select chrome so we can center text & add our own chevrons */
-#qrType{
-  -webkit-appearance: none;
-          appearance: none;
-  padding-right: 2rem;                   /* room for chevron */
-}
-
-/* Chevrons for the two selects via background image */
-#qrType{
-  background-image: var(--chev-icon);
-  background-repeat: no-repeat;
-  background-position: right .6rem center;
-  background-size: .75rem .75rem;
-}
-
-/* Chevron for the Menu button via pseudo (keeps it identical) */
-#appMenuBtn{
-  position: relative;
-  padding-right: 2rem;                   /* room for chevron */
-}
-#appMenuBtn::after{
-  content:"";
-  position:absolute;
-  right:.6rem;
-  top:50%;
-  width:.75rem; height:.75rem;
-  transform:translateY(-50%);
-  opacity:.85;
-  background-image: var(--chev-icon);
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size:100% 100%;
-}
 
 /* Optional: ensure consistent min-width so short labels (like “M”) don’t look cramped */
 #ecc{ min-width: 3.25rem; justify-content:center; }
@@ -992,10 +938,7 @@ textarea::placeholder{
   backdrop-filter: blur(4px);
   border-top: 1px solid rgba(0,0,0,.25); /* subtle edge */
   overflow: hidden;     /* clip the rule if it glows */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
+   z-index: 20;
 }
 
 .app-footer__rule{
@@ -1138,23 +1081,161 @@ label:has(input[type="color"]) input[type="color"]{
   margin-inline-start: .25rem;
 }
 
-/* Buttons on the band (not transparent), clean circles, no underline */
-.step-card[data-step="mechanicals"] .step-header-wrap #eccPill .ecc-btn:not([aria-pressed="true"]) {
-  display: inline-flex; align-items: center; justify-content: center;
-  inline-size: 1.75rem; block-size: 1.75rem; aspect-ratio: 1/1;
-  border-radius: 50% !important; padding: 0;
-  background: color-mix(in srgb, var(--md-sys-color-surface-variant) 85%, white 15%);
-  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
-  text-decoration: none !important;     /* kill underline in all states */
-}
-
-/* Band pill — pressed (token-driven) */
-.step-card[data-step="mechanicals"] .step-header-wrap #eccPill .ecc-btn[aria-pressed="true"]{
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-  border-color: var(--md-sys-color-primary);
-  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
-}
-
 /* Dim the text on "QR Types" */
 #qrType.is-placeholder { color: var(--typo-ph-color, rgba(160,160,160,.65)); }
+
+/* === Modal & legacy dropdown overrides (safe, CSS-only) ================== */
+
+/* 2) Bulletproof centering of the dialog card (ignores any old absolute rules) */
+#appModal > div,
+#emojiModal > div {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+}
+
+/* Stop the hamburger from looking “active/lit” while modal is open */
+#appMenuBtn[aria-expanded="true"] {
+  box-shadow: none !important;
+  outline: 0 !important;
+  background: inherit !important;
+}
+
+/* === Modal overlays (final, consolidated) =============================== */
+
+/* Hide any legacy dropdown if it still exists */
+#appMenu { display: none !important; }
+
+/* Prevent locked state when hidden */
+#appModal.hidden,
+#emojiModal.hidden {
+  display: none !important;
+}
+
+/* Modal overlays (visible) */
+.theme-grid > #appModal:not(.hidden),
+.theme-grid > #emojiModal:not(.hidden) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 60 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Neutralize legacy popover positioning inside overlays */
+#appModal [role="menu"],
+#emojiModal [role="menu"] {
+  position: static !important;
+}
+
+/* Backdrop polish + allow dismissal clicks */
+.modal-bg {
+  background: rgba(0,0,0,.25);
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+}
+
+/* When hidden, backdrop ignores all input */
+#appModal.hidden .modal-bg,
+#emojiModal.hidden .modal-bg {
+  pointer-events: none;
+}
+
+/* Burger shouldn’t look “active” while modal is open */
+#appMenuBtn[aria-expanded="true"] {
+  box-shadow: none !important;
+  background: inherit !important;
+}
+
+/* === Center the 🍔 hamburger icon cleanly === */
+#appMenuBtn {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+  text-align: center;
+  justify-content: center;      /* if display:flex somewhere upstream */
+  display: flex;                /* ensures centering works */
+  align-items: center;
+}
+
+/* make the hamburger a perfect circle and center the emoji */
+#appMenuBtn{
+  inline-size: var(--density-control-h);   /* width  = control height */
+  block-size:  var(--density-control-h);   /* height = control height */
+  padding: 0 !important;
+  display: inline-grid;
+  place-items: center;                     /* centers emoji */
+  line-height: 1;                          /* avoid emoji baseline drift */
+  border-radius: var(--shape-corner-full); /* full circle */
+}
+
+/* Hover / focus flair */
+#qrType:hover,
+body.kbd #qrType:focus-visible {
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 10px color-mix(in oklab, var(--md-sys-color-primary) 40%, transparent);
+  background: color-mix(in oklab, var(--ui-surface) 75%, var(--md-sys-color-primary) 25%);
+}
+
+/* === QR Types: show the custom chevron === */
+#qrType {
+  -webkit-appearance: none;
+          appearance: none;
+  padding-right: 2rem;                       /* room for chevron */
+  background-image: var(--chev-icon);        /* your SVG variable */
+  background-repeat: no-repeat;
+  background-position: right .65rem center;  /* nudge as before */
+  background-size: .75rem .75rem;
+}
+
+/* The hamburger has NO chevron */
+#appMenuBtn::after { content: none !important; }
+
+#qrType:hover,
+#appMenuBtn:hover {
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+
+body.kbd #qrType:focus-visible,
+body.kbd #appMenuBtn:focus-visible {
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* Hover / keyboard focus = same as hamburger */
+#qrType:hover,
+#appMenuBtn:hover {
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--hover-glow-blur) var(--hover-glow-color);
+}
+body.kbd #qrType:focus-visible,
+body.kbd #appMenuBtn:focus-visible {
+  border-color: var(--ui-stroke-hover);
+  box-shadow:
+    0 0 0 1px var(--ui-stroke-hover) inset,
+    0 0 var(--focus-glow-blur) var(--focus-ring-color);
+}
+
+/* === QR Types: restore the chevron (only here) ======================== */
+#qrType {
+  -webkit-appearance: none;
+          appearance: none;
+  padding-right: 2rem;                /* room for chevron */
+  background-image: var(--chev-icon);
+  background-repeat: no-repeat;
+  background-position: right .65rem center;
+  background-size: .75rem .75rem;
+}
+
+/* === Hamburger: no chevron; keep icon centered ======================== */
+#appMenuBtn::after { content: none !important; }
+#appMenuBtn {
+  padding-inline: 1rem;               /* same side padding as QR Types */
+}

@@ -24,6 +24,7 @@
  
  <script>
   // Use class strategy so toggling `.dark` works
+  window.tailwind = window.tailwind || {};
   tailwind.config = { darkMode: 'class' };
 </script>
  
@@ -62,38 +63,7 @@
         </label>
 
         <!-- Menu -->
-        <div id="appMenuWrap" class="relative">
-          <button id="appMenuBtn" class="topctl topctl--chev text-sm"
-                  aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu">
-            🍔
-          </button>
-          <div id="appMenu"
-               class="hidden absolute right-0 mt-2 w-56 rounded-lg border border-neutral-200 bg-white shadow-md
-                      dark:bg-neutral-800 dark:border-neutral-700"
-               role="menu" aria-labelledby="appMenuBtn">
-            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-                    role="menuitem" data-open="aboutApp">About this app</button>
-            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-                    role="menuitem" data-open="aboutQR">About QR Codes</button>
-            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-                    role="menuitem" data-open="privacy">Privacy</button>
-            <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-                    role="menuitem" data-open="legal">Legal / Disclaimer</button>
-            <button id="themeToggle" role="menuitem" type="button"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
-                    focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
-              onclick="(function(){
-                const r = document.documentElement;
-                const next = r.classList.contains('dark') ? 'light' : 'dark';
-                r.classList.remove('dark','light');
-                r.classList.add(next);
-                localStorage.setItem('theme', next);
-              })()">
-              <span class="mi">🌙</span>
-              <span>Toggle Dark Mode</span>
-            </button>
-          </div>
-        </div>
+        <button type="button" id="appMenuBtn" >🍔</button>
       </div>
     </div>
   </header>
@@ -390,7 +360,7 @@
 <!-- Emoji Modal -->
 <!-- (optional) tiny helper for the dim bg -->
 <style>
-  .modal-bg { background: rgba(0,0,0,.28); backdrop-filter: blur(2px); }
+  .modal-bg { background: rgba(0,0,0,.5); backdrop-filter: blur(6px); }
 </style>
 
 <!-- Your app code (keep this if you already have it) -->
@@ -452,6 +422,10 @@
   document.getElementById('themeToggle')?.addEventListener('click', applyPickerTheme);
   window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', applyPickerTheme);
 
+  // Keep picker in sync whenever <html> toggles dark/light
+new MutationObserver(() => applyPickerTheme())
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
   grid.replaceWith(picker);
 
   picker.addEventListener('emoji-click', (e) => {
@@ -463,6 +437,46 @@
     closeEmoji();
   });
 </script>
+
+<!-- App Menu Modal -->
+<div id="appModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
+  <div class="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900
+            border border-neutral-200 dark:border-neutral-800 shadow-lg
+            relative m-auto">
+    <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
+      <h2 id="appModalTitle" class="text-sm font-medium">Menu</h2>
+      <button id="appClose" class="ml-auto px-3 py-2 rounded-md text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800">
+        Close
+      </button>
+    </div>
+    <div class="p-2 static" role="menu" aria-labelledby="appMenuBtn">
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="aboutApp">About this app</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="aboutQR">About QR Codes</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="privacy">Privacy</button>
+      <button class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
+              role="menuitem" data-open="legal">Legal / Disclaimer</button>
+
+      <!-- Dark-mode toggle preserved -->
+      <button id="themeToggle" role="menuitem" type="button"
+              class="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
+                     focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+              onclick="(function(){
+                const r = document.documentElement;
+                const next = r.classList.contains('dark') ? 'light' : 'dark';
+                r.classList.remove('dark','light');
+                r.classList.add(next);
+                localStorage.setItem('theme', next);
+              })()">
+        <span class="mi">🌙</span>
+        <span>Toggle Dark Mode</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
 (() => {
@@ -584,36 +598,45 @@
   });
 </script>
 
-<!-- App menu toggle -->
+<!-- App menu modal wiring — legacy-proof -->
 <script>
-  (function(){
-    const btn = document.getElementById('appMenuBtn');
-    const menu = document.getElementById('appMenu');
-    if(!btn || !menu) return;
+(function () {
+  const btn    = document.getElementById('appMenuBtn');
+  const modal  = document.getElementById('appModal');
+  const closer = document.getElementById('appClose');
+  if (!btn || !modal || !closer) return;
 
-    const close = () => { 
-      menu.classList.add('hidden'); 
-      btn.setAttribute('aria-expanded','false'); 
-    };
-    const open  = () => { 
-      menu.classList.remove('hidden'); 
-      btn.setAttribute('aria-expanded','true'); 
-    };
+  // 1) Remove any legacy dropdown menu node if it exists
+  const legacy = document.getElementById('appMenu');
+  if (legacy) legacy.remove();
 
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      if(menu.classList.contains('hidden')) open(); else close();
-    });
+  // 2) Strip any previously attached click handlers on the 🍔
+  const cleanBtn = btn.cloneNode(true);              // clones markup, drops listeners
+  btn.parentNode.replaceChild(cleanBtn, btn);
 
-    document.addEventListener('click', (e)=>{
-      if(!menu.classList.contains('hidden') && 
-          !document.getElementById('appMenuWrap')?.contains(e.target)) close();
-    });
+  // 3) Wire the centered modal
+  function open() {
+    modal.classList.remove('hidden');
+    (modal.querySelector('[role="menuitem"],button,[href],input,select,textarea') || closer).focus();
+    cleanBtn.setAttribute('aria-expanded', 'true');
+  }
+  function close() {
+    modal.classList.add('hidden');
+    cleanBtn.setAttribute('aria-expanded', 'false');
+    cleanBtn.focus();
+  }
 
-    document.addEventListener('keydown', (e)=>{ 
-      if(e.key==='Escape') close(); 
-    });
-  })();
+  cleanBtn.addEventListener('click', (e) => { e.preventDefault(); open(); });
+  closer.addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+  });
+
+  // 4) Ensure correct ARIA semantics
+  cleanBtn.setAttribute('aria-haspopup', 'dialog');
+  cleanBtn.setAttribute('aria-controls', 'appModal');
+})();
 </script>
 
 <script>
