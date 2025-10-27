@@ -369,9 +369,22 @@
 </main>
 
   <footer class="app-footer">
-    <div class="app-footer__rule"></div>
-    <p class="app-footer__text">© <span id="year"></span> 🤠 okQRal by Jacob Eugene Henderson. All rights reserved.</p>
-  </footer>
+  <div class="app-footer__rule"></div>
+  <p class="app-footer__text">
+    © <span id="year"></span>
+    🤠 okQRal by
+    <a href="mailto:jacobhenderson@gmail.com"
+       class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      Jacob Eugene Henderson
+    </a>.
+    All rights reserved.
+  </p>
+</footer>
+
+<script>
+  // Set current year automatically
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 
 <script>
 (function () {

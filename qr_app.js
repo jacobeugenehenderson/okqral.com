@@ -39,10 +39,6 @@ function setTheme(mode) {
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
 
-toggle && toggle.addEventListener('click', () => {
-  setTheme(!root.classList.contains('dark'));
-});
-
 // Allow any existing button to act as the theme toggle
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-theme-toggle], .js-theme-toggle');
@@ -190,16 +186,29 @@ document.addEventListener('DOMContentLoaded', wireFontSelect);
     const emojiSearch= document.getElementById('emojiSearch');
     const emojiClose = document.getElementById('emojiClose');
     window.emojiTarget = null;
-    function openEmoji(targetId){ window.emojiTarget = document.getElementById(targetId); emojiSearch.value=''; renderEmojiGrid(''); emojiModal.classList.remove('hidden'); emojiSearch.focus(); }
+    function openEmoji(targetId){
+      window.emojiTarget = document.getElementById(targetId);
+      emojiSearch.value = '';
+      renderEmojiGrid('');
+      // ⬇️ Portal to <body> so it sits above any local z-index/transform
+      if (emojiModal.parentElement !== document.body) {
+        document.body.appendChild(emojiModal);
+      }
+      emojiModal.classList.remove('hidden');
+      document.documentElement.classList.add('emoji-open');   // ⬅️ disable phone taps
+      emojiSearch.focus();
+    }
     
     function closeEmoji(){
-    window.emojiModal.classList.add('hidden');
-    window.emojiTarget = null;
+      emojiModal.classList.add('hidden');
+      document.documentElement.classList.remove('emoji-open'); // ⬅️ re-enable phone taps
+      window.emojiTarget = null;
 
   // force a fresh preview on close as a safety net
   if (typeof render === 'function') render();
 }
 window.closeEmoji = closeEmoji;
+
     function renderEmojiGrid(q){ const norm=q.trim().toLowerCase(); emojiGrid.innerHTML=''; EMOJI_BIG.filter(e => !norm || e.toLowerCase().includes(norm)).forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.className='h-9 text-lg rounded-md border hover:bg-neutral-50'; b.textContent=e; b.addEventListener('click', ()=>{
   if (window.emojiTarget) {
     window.emojiTarget.value = e;
@@ -214,6 +223,7 @@ emojiGrid.appendChild(b); }); }
     emojiSearch.addEventListener('input', ()=> renderEmojiGrid(emojiSearch.value));
     emojiClose.addEventListener('click', closeEmoji);
     emojiModal.addEventListener('click', (e)=>{ if(e.target===emojiModal) closeEmoji(); });
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !emojiModal.classList.contains('hidden')) closeEmoji(); });
 
     // -------- Scale clickers --------
     function clamp(val,min,max){ return Math.min(max,Math.max(min,val)); }
@@ -777,14 +787,25 @@ function layoutCaptionLines(ns, {
   startSize,
   minSize,
   maxLines = 2,
-  charBudget = 25,       // total characters across all lines
+  charBudget = 0,       // total characters across all lines
   twoLineTrigger = 14    // if > this, prefer wrapping first
 }) {
-  const raw   = (text || '').replace(/\s+/g, ' ').trim();
-  // enforce the *total* char budget first so layout stays predictable
-  const s     = charBudget > 0 ? raw.slice(0, charBudget) : raw;
+  const raw = (text || '').replace(/\s+/g, ' ').trim();
+  const s   = charBudget > 0 ? raw.slice(0, charBudget) : raw;
 
   const measure = (fs, str) => measureSvgText(ns, family, weight, fs, str);
+
+  /* === NEW: single-line fast path (no ellipses) ===================== */
+  if (maxLines === 1) {
+    for (let fs = startSize; fs >= Math.max(5, minSize); fs--) {
+      if (measure(fs, s) <= maxWidth) {
+        return { fontSize: fs, lines: [s] };
+      }
+    }
+    // If nothing fits wider than minSize, still return the full string at minSize.
+    return { fontSize: Math.max(5, minSize), lines: [s] };
+  }
+  /* ================================================================== */
 
   // Greedy wrap (<= maxLines) at a given font size
   function wrapAt(fs) {
@@ -798,7 +819,7 @@ function layoutCaptionLines(ns, {
         line = test;
       } else {
         if (line) { lines.push(line); line = words[i]; }
-        else      { lines.push(words[i]); line = ''; } // single long “word”
+        else      { lines.push(words[i]); line = ''; }
       }
       if (lines.length === maxLines) {
         // shove the remainder into the last line and ellipsize if needed
@@ -841,11 +862,15 @@ function layoutCaptionLines(ns, {
     }
   }
 
-  // Final fallback at min size: single clipped line
+  /* === NEW: final fallback without ellipses for single-line mode ===== */
+  // (We never get here when maxLines === 1 because of the early return above.)
   let clip = s;
   while (clip && measure(minSize, clip + '…') > maxWidth) clip = clip.slice(0, -1);
   return { fontSize: minSize, lines: [clip ? clip + '…' : ''] };
-}// Build an SVG element for the QR, including background, modules, and eyes
+  /* ================================================================== */
+}
+
+// Build an SVG element for the QR, including background, modules, and eyes
 function buildQrSvg({
   text, size, level,
   modulesShape, bodyColor,
@@ -898,17 +923,25 @@ if (showCaption) {
     family: captionFontFamily,
     weight: "600",
     maxWidth,
-    maxLines: 2,
+    maxLines: 1,
     startSize,
-    minSize,
-    charBudget: 30,
-    twoLineTrigger: 14
+    minSize: Math.max(5, Math.round(size * 0.04)),
+    charBudget: 0,
+    twoLineTrigger: 999
   });
 
   capPadTop = Math.round(size * 0.18);
   capPadBot = Math.round(size * 0.08);
-  const blockH = Math.round(capLayout.fontSize * (capLayout.lines.length * lineGap));
-  totalH = size + capPadTop + blockH + capPadBot;
+  const blockH = Math.round(capLayout.fontSize * lineGap);
+
+  // vertically center the single line between QR bottom and preview bottom
+  const availableH = capPadTop + capPadBot + blockH;
+  const topOffset = (capPadTop + capPadBot - blockH) / 2;
+  capPadTop = topOffset;
+  capPadBot = topOffset;
+
+  totalH = size + availableH;
+
 }
 
 // Set canvas dimensions now that we know total height
@@ -1343,60 +1376,40 @@ function composeCardSvg({
   const capWidth  = cardWidth - CAP_SIDE*2;
   const capMaxH   = (cardHeight - OUTER_PAD) - CAP_BOTPAD - capY0;
 
-  // Fit up to two lines at the largest size that fits the width
+  // Fit one line and scale
   const lineGap   = 1.12;
   const startSize = Math.round(cardWidth * 0.16);
   const minSize   = Math.round(cardWidth * 0.095);
 
   const layout = layoutCaptionLines(NS, {
-    text: captionText || '',
-    family: getPreviewFont(),
-    weight: '600',
-    maxWidth: capWidth,
-    maxLines: 2,
-    startSize,
-    minSize,
-    charBudget: 60,          // allow long captions
-    twoLineTrigger: 16
-  });
+  text: captionText || '',
+  family: getPreviewFont(),
+  weight: '600',
+  maxWidth: capWidth,
+  maxLines: 1,
+  startSize,
+  minSize: Math.max(5, Math.round(cardWidth * 0.04)),
+  charBudget: 0,
+  twoLineTrigger: 999
+});
 
-  // If two lines overflow the available height, reduce one step
-  const neededH = layout.fontSize * (layout.lines.length * lineGap);
-  if (neededH > capMaxH && layout.fontSize > minSize) {
-    const layout2 = layoutCaptionLines(NS, {
-      text: captionText || '',
-      family: getPreviewFont(),
-      weight: '600',
-      maxWidth: capWidth,
-      maxLines: 2,
-      startSize: layout.fontSize - 1,
-      minSize,
-      charBudget: 60,
-      twoLineTrigger: 16
-    });
-    layout.fontSize = layout2.fontSize;
-    layout.lines    = layout2.lines;
-  }
-
-  // Draw caption lines, centered
-  if (layout.lines.length && layout.lines[0]) {
-    const firstBase = capY0 + layout.fontSize; // baseline of line 1
-    layout.lines.forEach((ln, i) => {
-      const t = document.createElementNS(NS, 'text');
-      t.setAttribute('x', String(cardWidth/2));
-      t.setAttribute('y', String(firstBase + i*layout.fontSize*lineGap));
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('dominant-baseline', 'alphabetic');
-      t.setAttribute('font-size', String(layout.fontSize));
-      t.setAttribute('font-weight', '600');
-      t.setAttribute('fill', captionColor || '#000');
-      t.setAttribute('font-family', getPreviewFont());
-      t.textContent = ln;
-      svg.appendChild(t);
-    });
-  }
-
-  return svg;
+  // Draw single-line headline centered horizontally AND vertically
+if (layout.lines.length && layout.lines[0]) {
+  const centerY = capY0 + (capMaxH / 2);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', String(cardWidth / 2));
+  t.setAttribute('y', String(centerY));
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('dominant-baseline', 'middle');
+  t.setAttribute('font-size', String(layout.fontSize));
+  t.setAttribute('font-weight', '600');
+  t.setAttribute('fill', captionColor || '#000');
+  t.setAttribute('font-family', getPreviewFont());
+  t.textContent = layout.lines[0];
+  svg.appendChild(t);
+}
+ 
+return svg;
 }
 
 // --- One-time wiring for Background controls ---
@@ -1468,6 +1481,8 @@ refreshBackground?.();    // applies Transparent toggle to the preview frame
 requestAnimationFrame(() => {
     if (typeof render === 'function') render();
     document.documentElement.classList.add('ui-ready');
+    // ensure click-through state is correct once the phone is painted
+    if (typeof applyClickThroughForMobile === 'function') applyClickThroughForMobile();
   });
 }
 
@@ -2072,71 +2087,136 @@ document.getElementById('exportBtn')?.addEventListener('click', async () => {
   if (wantPng) downloadPng(`${base}.png`);
 });
 
-// ---------- Stepper / Accordion: one open at a time + inner scroll ----------
-(function wireStepper() {
-  const root     = document.getElementById('stepper');
-  const finishEl = document.getElementById('finishCard');
-  if (!root || !finishEl) return;
+// === Stacked-mode "park under phone" helper ==========================
+(function(){
+  const R = document.documentElement;
 
-  const headers = Array.from(root.querySelectorAll('[data-step-toggle]'));
-  const panels  = Array.from(root.querySelectorAll('[data-step-panel]'));
+  function numberVar(cssVar, fallback = 0){
+    const v = getComputedStyle(R).getPropertyValue(cssVar).trim();
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
 
-  function computeMaxPanelHeight() {
-  // Try the CSS token first
-  const css = getComputedStyle(document.documentElement);
-  const park = parseFloat(css.getPropertyValue('--park-h')) || 520;
+  // Compute where the stepper should "park" its open header under the phone
+  function computeParkOffset(){
+    const R = document.documentElement;
 
-  // Constrain to viewport so it never overflows
-  const safe = Math.max(240, Math.min(window.innerHeight - 120, park));
-  return Math.round(safe);
+    const stage = document.querySelector('.preview-stage');
+    if (!stage) return null;
+
+    // Use the visible QR card if present; fallback to the stage
+    const previewEl = document.getElementById('qrPreview') || stage;
+    const previewH  = previewEl.getBoundingClientRect().height;
+
+    const headerH = document.querySelector('.header-bar')
+        ?.getBoundingClientRect().height || 56;
+    // Make header height available to CSS so scroll-margin/padding can do exact parking
+    R.style.setProperty('--header-h', headerH + 'px');
+
+    // Read CSS knobs
+    const getNum = (name, fallback) => {
+      const v = getComputedStyle(R).getPropertyValue(name).trim();
+      const n = parseFloat(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+
+    const overlap = getNum('--preview-overlap', 180);
+    const gap     = getNum('--preview-gap', 8);
+    const nudge   = getNum('--park-nudge', 16);
+
+    // Phone height - overlap + gap + nudge
+    const park = Math.max(0, Math.round(previewH - overlap + gap + nudge));
+
+    // Expose as CSS var so CSS scroll-* rules can use it if needed
+    R.style.setProperty('--park-offset', park + 'px');
+
+    // Helpful if you keep inner scrolling elsewhere; harmless otherwise
+    const stepper = document.getElementById('stepper');
+    if (stepper){
+      stepper.style.scrollPaddingTop = `calc(${headerH}px + ${park}px)`;
+    }
+    return park;
+  }
+
+  // Make it globally callable (you already call window.reflowStepper elsewhere)
+  window.reflowStepper = function reflowStepper(){
+    computeParkOffset();
+  };
+
+  // Keep it fresh
+  window.addEventListener('resize', computeParkOffset, { passive: true });
+  window.addEventListener('orientationchange', computeParkOffset, { passive: true });
+  document.fonts?.ready?.then?.(computeParkOffset);
+  document.addEventListener('DOMContentLoaded', computeParkOffset);
+
+// --- Uniform "park under QR" on open (stacked only, stable + deterministic) ---
+document.removeEventListener?.('click', window.__okqr_park_handler__);
+window.__okqr_park_handler__ = function (e) {
+  const btn  = e.target.closest?.('[data-step-toggle]');
+  const card = btn?.closest?.('.step-card');
+  if (!card) return;
+
+  // Wait one microtask so header pills can expand before measuring
+  setTimeout(() => {
+    if (!window.matchMedia('(max-width: 1279px)').matches) return;
+    window.reflowStepper?.(); // recompute --park-offset after header reflows
+
+    // ✅ scroll to the wrapper (includes pills) — avoids post-scroll jump
+    const header = card.querySelector('.step-header-wrap')
+                || card.querySelector('.step-header')
+                || card;
+
+    const preferSmooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    header.scrollIntoView({
+      block: 'start',
+      behavior: preferSmooth ? 'smooth' : 'auto'
+    });
+  }, 0);
+};
+
+document.addEventListener('click', window.__okqr_park_handler__);
+
+// --- Safety: ensure headers remain clickable under the phone on mobile ---
+function applyClickThroughForMobile() {
+  const pass  = window.matchMedia('(max-width: 1279px)').matches;
+  const stage = document.querySelector('.preview-stage');
+  if (!stage) return;
+
+  const wrap   = stage.querySelector('.absolute'); // inner absolute inset wrapper
+  const qr     = stage.querySelector('#qrPreview');
+  const mount  = stage.querySelector('#qrMount');
+  const svg    = stage.querySelector('#qrMount > svg');
+  const arrows = stage.querySelectorAll('.nav-arrow');
+
+  if (pass) {
+    // Make the whole preview stack "glass"
+    stage.style.pointerEvents = 'none';
+    if (wrap)  wrap.style.pointerEvents  = 'none';
+    if (qr)    qr.style.pointerEvents    = 'none';
+    if (mount) mount.style.pointerEvents = 'none';
+    if (svg)   svg.style.pointerEvents   = 'none';
+
+    // …but keep the left/right arrows clickable
+    arrows.forEach(a => { a.style.pointerEvents = 'auto'; });
+  } else {
+    // Desktop: restore defaults
+    stage.style.pointerEvents = '';
+    if (wrap)  wrap.style.pointerEvents  = '';
+    if (qr)    qr.style.pointerEvents    = '';
+    if (mount) mount.style.pointerEvents = '';
+    if (svg)   svg.style.pointerEvents   = '';
+    arrows.forEach(a => { a.style.pointerEvents = ''; });
+  }
 }
-
-function openOnly(index, opts = {}) {
-  const focusHeader = opts.focusHeader ?? true;
-
-  panels.forEach((p, i) => {
-    const card   = headers[i]?.parentElement; // the card wrapper that contains the header
-    const isOpen = i === index;
-
-    // show/hide panel
-    p.style.display = isOpen ? 'block' : 'none';
-
-    // highlight card
-    if (card) card.classList.toggle('is-open', isOpen);
-
-    if (card?.dataset.step === 'mechanicals') {
-    const pill = card.querySelector('#eccPill');
-    if (pill) pill.hidden = !isOpen;
-}
-
-    // scroll-frame for large panels only (Design/Mechanicals)
-    // keep Caption & Finish free of inner scroll
-    p.classList.remove('scroll-frame');
-    p.style.maxHeight = '';
-  });
-
-  // Optional: keep focus sensible
-  if (focusHeader) headers[index]?.focus({ preventScroll: true });
-}
-
-    // Wire clicks (accordion behavior)
-  headers.forEach((h, i) => {
-    h.addEventListener('click',     () => openOnly(i));
-    h.addEventListener('dblclick',  () => openOnly((i + 1) % panels.length));
-  });
-
-  // Keep sizes correct on resize (don’t steal focus)
-  window.addEventListener('resize', () => {
-    const openIndex = panels.findIndex(p => p.style.display !== 'none');
-    if (openIndex >= 0) openOnly(openIndex, { focusHeader: false });
-  });
-
-  // Initial state (Caption open)
-  openOnly(0); 
+window.addEventListener('resize', applyClickThroughForMobile, { passive: true });
+document.addEventListener('DOMContentLoaded', applyClickThroughForMobile);
+ 
 })();
 
+
+
 // =======================================================
-// Color picker ⇄ hex text sync (robust pairing, DOM-safe)
+// Color picker / hex text sync (robust pairing, DOM-safe)
 // =======================================================
 (function bindColorHexSync(){
   const ready = () => {
@@ -2230,3 +2310,5 @@ function openOnly(index, opts = {}) {
     if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeAppModal();
   });
 })();
+
+

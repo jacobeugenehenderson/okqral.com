@@ -65,6 +65,10 @@ html.light, :root.light {
 }
 
 :root{
+
+  /* ----- Header ----- */
+  --header-h: 56px;
+
   /* ----- Brand / Accent (HSL-based) ----- */
   --brand-h: 266;
   --brand-s: 92%;
@@ -291,12 +295,6 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   pointer-events: none;
 }
 
-/* Remove the button’s own stripe so there’s no seam */
-.step-card[data-step="mechanicals"].is-open .step-header {
-  background: transparent;
-  border-bottom: 0;
-}
-
 /* Mechanicals body should match other panels’ surface */
 .step-card[data-step="mechanicals"] [data-step-panel]{
   background: var(--ui-surface-variant);
@@ -315,7 +313,7 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   overflow:auto;
   gap: var(--stack-gap);
   min-width:0; width:100%; max-width:720px; margin-inline:auto;
-  scroll-padding-top: calc(var(--header-h,56px) + 2px);
+  scroll-padding-top: calc(var(--header-h,56px) + var(--preview-overlap, 200px));
   padding-bottom: calc(var(--footer-h,72px) + 8px); /* reserve for fixed footer */
 }
 
@@ -342,11 +340,44 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   line-height: 1.15;
 }
 
-/* Caption panel: allow full-width children */
-.step-card[data-step="caption"] [data-step-panel]{
-  display: flex;
-  align-items: stretch;   /* child can fill the row */
-  min-width: 0;           /* prevents flex overflow clipping */
+.step-card[data-step="caption"] .caption-toggle-row { justify-self: start; }
+
+.step-card[data-step="caption"] label:has(#campaign){
+  display: block;
+  width: 100%;
+}
+
+.step-card[data-step="caption"] label:has(#showCaption){
+  justify-self: start;
+}
+
+/* ── Caption card layout: input full-width, toggle beneath ─────────── */
+/* Make the caption step body a single-column grid so children stack */
+.step-card[data-step="caption"] .step-body{
+  display: grid !important;
+  grid-template-columns: 1fr;
+  row-gap: .5rem;               /* space between field and toggle */
+  align-items: start;
+}
+
+/* Ensure the caption text field spans the whole card */
+.step-card[data-step="caption"] label:has(#campaign){
+  display: grid;                /* keep label as a block wrapper */
+  grid-template-columns: 1fr;   /* kill any leftover two-column form rules */
+}
+.step-card[data-step="caption"] #campaign{
+  width: 100%;
+}
+
+/* Put the toggle on its own row under the input, left-aligned */
+.step-card[data-step="caption"] #showCaption,
+.step-card[data-step="caption"] [for="showCaption"]{
+  justify-self: start;
+}
+
+/* (Optional) tighten the vertical rhythm of the toggle row */
+.step-card[data-step="caption"] [for="showCaption"]{
+  line-height: 1.2;
 }
 
 /* If the input is inside a <label>, collapse it to a single column */
@@ -516,16 +547,6 @@ body.kbd .ecc-btn[aria-pressed="true"] {
   outline: none;
 }
 
-/* Buttons — pressed must win over hover/focus */
-.ecc-btn[aria-pressed="true"],
-.ecc-btn[aria-pressed="true"]:hover,
-.ecc-btn[aria-pressed="true"]:focus-visible {
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-  border-color: var(--md-sys-color-primary);
-  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
-}
-
 /* Design (open): unified stripe and no duplicate borders (mirror of Mechanicals) */
 .step-card[data-step="design"].is-open .step-header-wrap{
   background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
@@ -554,12 +575,6 @@ body.kbd .ecc-btn[aria-pressed="true"] {
   flex:1 1 auto;
   padding-right:0;
 }
-
-/* Hide when stowed; show when open (mirror of ECC) */
-.step-card[data-step="design"]:not(.is-open) #fontPill { display: none !important; }
-.step-card[data-step="design"].is-open #fontPill     { display: flex !important;
-}
-
 
 /* =========================
    4. CONTROLS (inputs/selects/Menu)
@@ -673,6 +688,9 @@ select.rounded-md,
   box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
   border-color: var(--md-sys-color-primary);
 }
+
+.preview-stage { z-index: auto; }
+#qrPreview    { z-index: auto; }
 
 /* Emoji picker buttons */
 #emojiGrid button{
@@ -948,25 +966,6 @@ textarea::placeholder{
   border-radius: inherit;
 }
 
-/* --- Single-column layout (< 1280px): lock preview; stepper flows behind --- */
-@media (max-width: 1279px) {
-  /* Raise the preview section above the stepper */
-  main > section.stage-stick:first-of-type {
-    position: sticky;
-    z-index: 20; /* keep phone above accordion */
-    top: calc(var(--header-h, 56px) + var(--stack-gap)); /* was + 8px */
-  }
-
-  /* Opaque plate so the stepper can't show through the phone's transparent areas */
-  .preview-stage::before {
-    content: "";
-    position: absolute;
-    inset: -12px -18px;               /* slightly larger than the phone card */
-    border-radius: var(--phone-radius, 20px);
-    background: var(--md-sys-color-background);
-    z-index: 0;                       /* sits under the phone/arrows inside stage */
-  }
-
   .preview-stage,
   #qrPreview,
   #prevSubtype,
@@ -977,7 +976,6 @@ textarea::placeholder{
     position: relative;
     z-index: 1;                       /* below the raised preview section */
   }
-}
 
 /* Stop pinning/parallax on Finish; let it flow like others */
 .step-card[data-step="finish"]{
@@ -991,38 +989,53 @@ textarea::placeholder{
 @media (max-width: 1279px) {
   .preview-stage::before {
     /* pull the plate in so less shadow is visible */
-    inset: 0;                               /* was a negative inset */
+    inset: 0;                              
     border-radius: var(--phone-radius, 20px);
   }
 }
 
-/* --- Stacked layout (< xl): keep Caption below the phone, stay level on desktop --- */
-@media (max-width: 1279px) {
-  :root{
-    /* one knob = how far the stepper tucks under the phone */
-    --preview-overlap: 00px;   /* try 140–200px to taste */
-    --preview-gap: 0px;        /* clear space between phone and Caption */
-  }
-
-  /* stepper still scrolls behind the phone… */
-  #stepper{
-    margin-top: calc(var(--preview-overlap) * -1);       /* creates the overlap */
-    padding-top: calc(var(--preview-overlap) + var(--preview-gap));
-    /* ← pushes the first card down so its top is beneath the phone */
-  }
-
-  /* (optional) ensure no extra spacing sneaks in above the first card */
-  #stepper > .step-card:first-child{ margin-top: 0; }
+/* …but keep the on-phone UI (arrows) interactive */
+.preview-stage .nav-arrow {
+  pointer-events: auto;
+  z-index: 30;                  /* make sure they sit above the stepper */
+  position: absolute;           /* they already are, this is just defensive */
 }
 
-/* --- Single-column layout: park the stepper under the preview by --stack-gap --- */
-@media (max-width: 1279px) {
-  /* The grid container’s row gap becomes the parking distance */
-  main { row-gap: var(--stack-gap) !important; }
+/* =========================================================
+   Click-through preview: everything is glass except arrows
+   ========================================================= */
+.preview-stage,
+.preview-stage::before,         /* the opaque plate under the phone */
+.preview-stage > .absolute,     /* the absolute wrapper inside the stage */
+#qrPreview,                     /* the phone card container */
+#qrMount,                       /* SVG mount container */
+#qrMount > svg {                /* the live QR SVG itself */
+  pointer-events: none !important;
+}
 
-  /* Preview’s sticky offset also honors the same parking distance */
-  .stage-stick:first-of-type { 
-    top: calc(var(--header-h, 56px) + var(--stack-gap));
+/* Keep on-phone arrows interactive */
+.preview-stage .nav-arrow{
+  pointer-events: auto !important;
+  z-index: 50;                  /* keep them above the stepper */
+  position: absolute;           /* they already are; this is just defensive */
+}
+
+/* Make the WHOLE sticky preview block "glass" on mobile/stacked */
+@media (max-width: 1279px){
+  /* the sticky section that holds the phone */
+  main > section.stage-stick:first-of-type { pointer-events: none !important; }
+
+  /* everything inside the preview stack also glass */
+  .preview-stage,
+  .preview-stage::before,
+  #qrPreview,
+  #qrMount,
+  #qrMount > svg { pointer-events: none !important; }
+
+  /* …but keep the L/R arrows on the phone clickable */
+  .preview-stage .nav-arrow,
+  main > section.stage-stick:first-of-type .nav-arrow {
+    pointer-events: auto !important;
   }
 }
 
@@ -1087,7 +1100,7 @@ textarea::placeholder{
 }
 
 /* =========================
-  FOOTER
+  7. FOOTER
 ========================= */
 /* ===== Footer ===== */
 .app-footer{
@@ -1259,13 +1272,6 @@ label:has(input[type="color"]) input[type="color"]{
   margin: 0 !important;
 }
 
-/* Stop the hamburger from looking “active/lit” while modal is open */
-#appMenuBtn[aria-expanded="true"] {
-  box-shadow: none !important;
-  outline: 0 !important;
-  background: inherit !important;
-}
-
 /* === Modal overlays (final, consolidated) =============================== */
 
 /* Hide any legacy dropdown if it still exists */
@@ -1275,16 +1281,6 @@ label:has(input[type="color"]) input[type="color"]{
 #appModal.hidden,
 #emojiModal.hidden {
   display: none !important;
-}
-
-/* Modal overlays (visible) */
-.theme-grid > #appModal:not(.hidden),
-.theme-grid > #emojiModal:not(.hidden) {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 60 !important;
-  display: grid !important;
-  place-items: center !important;
 }
 
 /* Neutralize legacy popover positioning inside overlays */
@@ -1382,4 +1378,108 @@ label:has(input[type="color"]) input[type="color"]{
 /* Temporarily hide the SVG export toggle in the Finish step */
 .step-card[data-step="finish"] label:has(#wantSvg) {
   display: none !important;
+}
+/* =========================
+  MOBILE OVERRIDES
+========================= */
+
+/* --- Single-column / stacked behavior (< 1280px) -------------------- */
+@media (max-width: 1279px) {
+  /* Only the *first* stage-stick (the preview section) is sticky */
+  main > section.stage-stick:first-of-type {
+    position: sticky;
+    top: calc(var(--header-h, 56px) + 8px);
+    z-index: 30;
+  }
+
+  /* Ensure the stepper is *not* sticky in stacked mode */
+  #stepper.stage-stick { position: static; top: auto; }
+}
+
+  /* Park the stepper up under the phone */
+@media (max-width: 1279px){
+  :root{
+    --preview-overlap: 0px;
+    --preview-gap: 20px;
+    --park-nudge: 40px;
+  }
+
+  #stepper{
+    margin-top: calc(var(--preview-overlap) * -1);
+    padding-top: calc(var(--preview-overlap) + var(--preview-gap));
+    scroll-padding-top: calc(var(--header-h, 56px) + var(--park-offset, 180px));
+    scroll-behavior: smooth;
+  }
+
+   #stepper .step-header{
+    scroll-margin-top: calc(var(--header-h, 56px) + var(--park-offset, 180px));
+  }
+}
+
+ /* Desktop align fix */
+@media (min-width: 1280px){
+  .stage-stick { position: static; top: auto; }
+
+  #stepper{
+    height: auto;
+    overflow: visible;
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 1279px){
+  html { scroll-padding-top: calc(var(--header-h,56px) + var(--park-offset,180px)); }
+}
+
+ /* === Emoji modal: always on top, full-viewport ======================= */
+ #emojiModal {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;           /* win against any local stacking ctx */
+    display: grid;                 /* center its panel if you have one */
+    place-items: center;
+}
+#emojiModal.hidden { display: none; }
+
+/* While the emoji modal is open, make everything under the phone ignore taps */
+:root.emoji-open .preview-stage,
+:root.emoji-open #qrPreview {
+  pointer-events: none !important;
+}
+:root.emoji-open #emojiModal {
+  pointer-events: auto !important; /* but keep the modal interactive */
+}
+
+/* Step parking: every step header parks under the phone cleanly */
+.step-card .step-header {
+  scroll-margin-top: calc(var(--header-h, 56px) + var(--park-offset, 180px));
+}
+
+/* Stack the "Show caption" toggle below the text field */
+.step-card[data-step="caption"] .step-body {
+  display: flex;
+  flex-direction: column;   /* stack instead of row */
+  align-items: flex-start;  /* left-align the checkbox label */
+  gap: 0.5rem;              /* small vertical space */
+}
+
+@media (max-width: 1279px){
+  .preview-stage,
+  .preview-stage > .absolute,
+  #qrPreview,
+  #qrMount,
+  #qrMount > svg { pointer-events: none !important; }
+
+  .preview-stage .nav-arrow { pointer-events: auto !important; }
+}
+
+/* --- Global Modal Priority Layer --- */
+.modal-bg,
+[id$="Modal"],
+[id*="modal"] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important; /* ensure it's above all sticky and preview layers */
+  pointer-events: auto !important;
 }
