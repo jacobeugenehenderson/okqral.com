@@ -1560,11 +1560,16 @@ if (document.readyState === 'loading') {
   // If nothing picked, lock it down; otherwise, proceed normally
   const hasType = !!typeSel?.value;
   setDisabled(!hasType);
+  // Hide navigation arrows until a type is chosen
+  document.getElementById('prevSubtype')?.classList.toggle('hidden', !hasType);
+  document.getElementById('nextSubtype')?.classList.toggle('hidden', !hasType);
 
   // First real action: selecting a type unlocks everything and wires design gates
   typeSel?.addEventListener('change', () => {
     typeSel.classList.remove('start-here'); // remove highlight once chosen
     setDisabled(false);
+    document.getElementById('prevSubtype')?.classList.remove('hidden');
+    document.getElementById('nextSubtype')?.classList.remove('hidden');
     // Hand off to your existing, granular “Design” section gating
     if (typeof wireDesignGatesOnce === 'function') wireDesignGatesOnce();
   }, { once: true, passive: true });
@@ -2094,7 +2099,7 @@ document.getElementById('exportBtn')?.addEventListener('click', async () => {
   reportExport().catch(() => { /* silent */ });
 
   // then download(s)
-  if (wantSvg) downloadSvg(`${base}.svg`);
+  //if (wantSvg) downloadSvg(`${base}.svg`);//
   if (wantPng) downloadPng(`${base}.png`);
 });
 
