@@ -12,6 +12,7 @@
     "Message": ["msgMode", "smsNumber", "smsText"],
     "Event": ["evtTitle", "evtStart", "evtEnd", "evtLoc", "evtDet", "evtStyle"],
     "Map": ["mapQuery", "mapLat", "mapLng", "mapProvider"]
+
   },
   "fields": {
     "urlData":      {"label":"URL", "type":"text", "placeholder":"Your URL Here"},
@@ -65,6 +66,28 @@
     "mapProvider":  {"label":"Provider", "type":"select", "options":["Google","Apple","geo"]}
   },
   "presets": {
+    "WELCOME": [
+    {
+      "name": "LET'S GO!",
+        "campaign": "hey shugg",
+        "fontFamily": "Inter",
+        "captionColor": "#26282C",
+        "bodyColor": "#444B55",
+        "eyeRingColor": "#999999",
+        "eyeCenterColor": "#76808F",
+        "bgColor": "#EDEDED",
+        "bgTransparent": false,
+        "moduleShape": "Rounded",
+        "eyeRingShape": "Rounded",
+        "eyeCenterShape": "Circle",
+        "modulesMode": "Emoji",
+        "modulesEmoji": "🟫",
+        "modulesScale": 0.9,
+        "centerMode": "Emoji",
+        "centerEmoji": "🐿️",
+        "centerScale": 1.2
+    }
+  ],
     "URL": [
       {
         "name": "LET'S GO!",

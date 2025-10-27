@@ -549,6 +549,17 @@ if (initialType && getPresets(initialType).length) {
   applyPreset(initialType, 0);
 }
 
+// If no type is chosen yet, render the WELCOME look once
+if (!initialType && typeof getPresets === 'function') {
+  const welcomeList = getPresets('WELCOME') || [];
+  if (welcomeList.length) {
+    currentPresetIdx.set('WELCOME', 0);
+    applyPreset('WELCOME', 0);
+    setCaptionFromPreset(welcomeList[0] || {}, 'WELCOME');
+    if (typeof render === 'function') render();
+  }
+}
+
     // Payment: toggle user vs link by mode
     const payMode = document.getElementById('payMode');
     const payUser = document.getElementById('payUser');
