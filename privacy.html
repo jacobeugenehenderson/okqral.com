@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy</title>
+
+  <!-- Fonts & Tailwind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Your main theme -->
+  <link rel="stylesheet" href="./styles/theme.css">
+</head>
+
+<body class="min-h-screen flex flex-col bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100">
+
+  <!-- HEADER -->
+  <header class="header-bar sticky top-0 z-30 bg-white/90 dark:bg-neutral-900/90 backdrop-blur border-b border-neutral-200 dark:border-neutral-800">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="./index.html" class="text-lg font-semibold hover:underline">🤠 okQRal</a>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-3xl mx-auto px-6 py-12">
+    <h1 class="text-2xl font-semibold mb-4">Privacy</h1>
+    <p class="text-neutral-600 dark:text-neutral-300">
+      <!-- Placeholder content -->
+      Content coming soon.
+    </p>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="app-footer text-sm text-center py-6 border-t border-neutral-200 dark:border-neutral-800">
+    <p class="app-footer__text mb-2">
+      © <span id="year"></span>
+      🤠 okQRal by
+      <a href="mailto:jacobhenderson@gmail.com"
+         class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        Jacob Eugene Henderson
+      </a>.
+      All rights reserved.
+    </p>
+    <nav class="flex justify-center flex-wrap gap-4 text-sm">
+      <a href="./about-okqral.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">About okQRal</a>
+      <a href="./about-qr.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">About QR Codes</a>
+      <a href="./privacy.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">Privacy</a>
+      <a href="./legal.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">Legal / Disclaimer</a>
+    </nav>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+</body>
+</html>

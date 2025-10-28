@@ -1302,31 +1302,25 @@ label:has(input[type="color"]) input[type="color"]{
   pointer-events: none;
 }
 
-/* Burger shouldn’t look “active” while modal is open */
-#appMenuBtn[aria-expanded="true"] {
-  box-shadow: none !important;
-  background: inherit !important;
-}
-
-/* === Center the 🍔 hamburger icon cleanly === */
-#appMenuBtn {
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-  text-align: center;
-  justify-content: center;      /* if display:flex somewhere upstream */
-  display: flex;                /* ensures centering works */
-  align-items: center;
-}
-
-/* make the hamburger a perfect circle and center the emoji */
-#appMenuBtn{
-  inline-size: var(--density-control-h);   /* width  = control height */
-  block-size:  var(--density-control-h);   /* height = control height */
-  padding: 0 !important;
+/* === Circular Theme Toggle Button === */
+#themeToggle {
+  width: 2.25rem;              /* equal width/height keeps it round */
+  height: 2.25rem;
   display: inline-grid;
-  place-items: center;                     /* centers emoji */
-  line-height: 1;                          /* avoid emoji baseline drift */
-  border-radius: var(--shape-corner-full); /* full circle */
+  place-items: center;         /* centers the emoji perfectly */
+  border-radius: 50%;          /* makes it a circle */
+  border: 1px solid var(--ui-stroke, #4b5563);
+  background: var(--md-sys-color-surface, transparent);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#themeToggle:hover {
+  background: color-mix(in oklab, var(--md-sys-color-primary) 15%, transparent);
+}
+
+#themeToggle:active {
+  transform: scale(0.95);
 }
 
 /* === QR Types: show the custom chevron === */

@@ -87,8 +87,8 @@
           </select>
         </label>
 
-        <!-- Menu -->
-        <button type="button" id="appMenuBtn" >🍔</button>
+        <!-- Theme toggle -->
+        <button type="button" id="themeToggle" aria-pressed="false" title="Toggle dark mode">🌙</button>
       </div>
     </div>
   </header>
@@ -368,9 +368,9 @@
 
 </main>
 
-  <footer class="app-footer">
-  <div class="app-footer__rule"></div>
-  <p class="app-footer__text">
+  <footer class="app-footer text-sm text-center py-6 border-t border-neutral-200 dark:border-neutral-800">
+  <div class="app-footer__rule mb-2"></div>
+  <p class="app-footer__text mb-2">
     © <span id="year"></span>
     🤠 okQRal by
     <a href="mailto:jacobhenderson@gmail.com"
@@ -379,6 +379,12 @@
     </a>.
     All rights reserved.
   </p>
+  <nav class="flex justify-center flex-wrap gap-4 text-sm">
+    <a href="./about-okqral.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">About okQRal</a>
+    <a href="./about-qr.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">About QR Codes</a>
+    <a href="./privacy.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">Privacy</a>
+    <a href="./legal.html" class="hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500">Legal / Disclaimer</a>
+  </nav>
 </footer>
 
 <script>
@@ -496,11 +502,6 @@ new MutationObserver(() => applyPickerTheme())
   });
 </script>
 
-<!-- App Menu Modal -->
-<div id="appModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4"
-     role="dialog" aria-modal="true" aria-labelledby="appModalTitle">
-  <div class="w-full max-w-md step-card border rounded-2xl overflow-hidden m-auto">
-
 <!-- Modal header styled like step-cards -->
 <div class="flex items-center justify-end px-4 py-3 border-b border-[color:var(--featured-stroke-color)] dark:border-[color:var(--featured-stroke-color)]">
   <button id="appClose"
@@ -517,25 +518,14 @@ new MutationObserver(() => applyPickerTheme())
 
     <!-- Centered menu items -->
     <div class="p-2 static text-center" role="menu" aria-labelledby="appMenuBtn">
-      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-              role="menuitem" data-open="aboutApp">About this app</button>
-      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-              role="menuitem" data-open="aboutQR">About QR Codes</button>
-      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-              role="menuitem" data-open="privacy">Privacy</button>
-      <button class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700"
-              role="menuitem" data-open="legal">Legal / Disclaimer</button>
-
       <!-- Dark-mode toggle (connected to global JS) -->
       <button id="themeToggle" data-theme-toggle role="menuitem" type="button"
         class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
-               focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-2">
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-2">
         <span class="mi">🌙</span>
         <span>Toggle Dark Mode</span>
       </button>
     </div>
-  </div>
-</div>
 
 <script>
 (() => {
@@ -626,8 +616,8 @@ new MutationObserver(() => applyPickerTheme())
   // Footer year
   (function(){ const y=document.getElementById('year'); if (y) y.textContent=new Date().getFullYear(); })();
 
-  // Make Menu match selects in case CSS didn't load early enough
-  document.getElementById('appMenuBtn')?.classList.add('control');
+  // Make toggle match controls in case CSS didn't load early enough
+  document.getElementById('themeToggle')?.classList.add('control');
 
   // When you already compute transparency in render(), also toggle card classes:
   (function hookPreviewFrame(){
@@ -655,47 +645,6 @@ new MutationObserver(() => applyPickerTheme())
   document.getElementById('nextSubtype')?.addEventListener('click', () => {
     if (window.cyclePreset) return window.cyclePreset(1);
   });
-</script>
-
-<!-- App menu modal wiring — legacy-proof -->
-<script>
-(function () {
-  const btn    = document.getElementById('appMenuBtn');
-  const modal  = document.getElementById('appModal');
-  const closer = document.getElementById('appClose');
-  if (!btn || !modal || !closer) return;
-
-  // 1) Remove any legacy dropdown menu node if it exists
-  const legacy = document.getElementById('appMenu');
-  if (legacy) legacy.remove();
-
-  // 2) Strip any previously attached click handlers on the 🍔
-  const cleanBtn = btn.cloneNode(true);              // clones markup, drops listeners
-  btn.parentNode.replaceChild(cleanBtn, btn);
-
-  // 3) Wire the centered modal
-  function open() {
-    modal.classList.remove('hidden');
-    (modal.querySelector('[role="menuitem"],button,[href],input,select,textarea') || closer).focus();
-    cleanBtn.setAttribute('aria-expanded', 'true');
-  }
-  function close() {
-    modal.classList.add('hidden');
-    cleanBtn.setAttribute('aria-expanded', 'false');
-    cleanBtn.focus();
-  }
-
-  cleanBtn.addEventListener('click', (e) => { e.preventDefault(); open(); });
-  closer.addEventListener('click', close);
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
-  });
-
-  // 4) Ensure correct ARIA semantics
-  cleanBtn.setAttribute('aria-haspopup', 'dialog');
-  cleanBtn.setAttribute('aria-controls', 'appModal');
-})();
 </script>
 
 <script>
@@ -731,6 +680,28 @@ new MutationObserver(() => applyPickerTheme())
   const sync = () => sel.classList.toggle('is-placeholder', !sel.value);
   sel.addEventListener('change', sync);
   sync(); // on load
+})();
+</script>
+
+<script>
+(function () {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  function paintIcon() {
+    const dark = document.documentElement.classList.contains('dark');
+    btn.textContent = dark ? '☀️' : '🌙';
+    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.setAttribute('title',      dark ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+  }
+
+  // Paint on load
+  paintIcon();
+
+  // Repaint whenever <html> class flips (your existing scripts do this)
+  new MutationObserver(paintIcon)
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 })();
 </script>
 
