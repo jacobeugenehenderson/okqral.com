@@ -68,8 +68,8 @@
   "presets": {
     "WELCOME": [
     {
-      "name": "LET'S GO!",
-        "campaign": "hey shugg",
+      "name": "Welcome",
+        "campaign": "click the 💖",
         "fontFamily": "Inter",
         "captionColor": "#26282C",
         "bodyColor": "#444B55",
