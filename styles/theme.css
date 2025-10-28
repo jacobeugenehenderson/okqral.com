@@ -1086,14 +1086,14 @@ textarea::placeholder{
 /* Put each arrow just outside the card edges */
 #prevSubtype{
   top:50%;
-  left: calc(-1.75 * var(--edge-gutter));        /* or: calc(-1 * var(--edge-gutter)) */
+  left: calc(-1.25 * var(--edge-gutter));        /* or: calc(-1 * var(--edge-gutter)) */
   right: auto;
   transform: translateY(-50%);
   z-index: 20;
 }
 #nextSubtype{
   top:50%;
-  right: calc(-1.75 * var(--edge-gutter));       /* or: calc(-1 * var(--edge-gutter)) */
+  right: calc(-1.25 * var(--edge-gutter));       /* or: calc(-1 * var(--edge-gutter)) */
   left:  auto;
   transform: translateY(-50%);
   z-index: 20;

@@ -254,7 +254,7 @@ emojiGrid.appendChild(b); }); }
   // Fallback to a baked-in copy (keeps UI working if fetch fails)
   manifest = {
     types: {
-      "URL": ["urlData"],
+      "URL": ["urlData","utmSource","utmMedium","utmCampaign"],
       "Payment": ["payMode","payUser","payLink","payAmount","payNote"],
       "WiFi": ["wifiSsid","wifiPwd","wifiSec","wifiHidden"],
       "Contact": [
@@ -268,9 +268,11 @@ emojiGrid.appendChild(b); }); }
       "Map": ["mapQuery","mapLat","mapLng","mapProvider"]
     },
 
-    // ← THIS is the piece that makes buildField() happy
     fields: {
       urlData:    { type:'url',   label:'URL', placeholder:'https://example.org' },
+      utmSource:   { type:'text', label:'UTM Source',   placeholder:'site, newsletter, etc.' },
+      utmMedium:   { type:'text', label:'UTM Medium',   placeholder:'qr, social, cpc…' },
+      utmCampaign: { type:'text', label:'UTM Campaign', placeholder:'campaign-name' },
 
       payMode:    { type:'select',label:'Payment Type',
                     options:['Venmo','Cash App','PayPal.me','Generic Link','Stripe Payment Link'] },
@@ -402,6 +404,24 @@ window.getPresets = (t) => {
   console.warn('[qr] Unknown type for manifest:', type);
 }
 
+// =====================================================
+//  Default ECC button: preselect "M" on first load
+// =====================================================
+(function setDefaultECC(){
+  const eccBtns = document.querySelectorAll('.ecc-btn');
+  if (!eccBtns.length) return;
+
+  // find the M button and mark it as active
+  eccBtns.forEach(btn => {
+    const isDefault = btn.dataset.ecc === 'M';
+    btn.classList.toggle('active', isDefault);
+    btn.setAttribute('aria-pressed', isDefault ? 'true' : 'false');
+  });
+
+  // store it in your global state if you have one
+  window.currentECC = 'M';
+})();
+
     const frag = document.createDocumentFragment();
 
     // Simple heuristic grouping for prettier layout
@@ -507,13 +527,21 @@ function setCaptionFromPreset(preset, typeName) {
 // After the existing type-change listener (form rebuild), apply last/first preset
 typeSel.addEventListener('change', () => {
   const t = typeSel.value;
+
+  // 1) rebuild the form for this type
+  renderTypeForm(t);
+
+  // 2) preset index bookkeeping
   if (!currentPresetIdx.has(t)) currentPresetIdx.set(t, 0);
+
+  // 3) apply the preset now that controls exist
   applyPreset(t, currentPresetIdx.get(t));
 
-  // 🔹 add this block inside the listener, right after applyPreset
+  // 4) force caption from the active preset (or type name)
   const list = getPresets(t);
   setCaptionFromPreset(list[currentPresetIdx.get(t)] || {}, t);
 
+  // 5) analytics
   sendEvent('type_change', currentUiState());
 });
 
@@ -541,24 +569,6 @@ function cyclePreset(dir) {
 
 prevBtn?.addEventListener('click', () => cyclePreset(-1));
 nextBtn?.addEventListener('click', () => cyclePreset(1));
-
-// Initial apply for the default type (after first renderTypeForm call)
-const initialType = typeSel?.value;
-if (initialType && getPresets(initialType).length) {
-  currentPresetIdx.set(initialType, 0);
-  applyPreset(initialType, 0);
-}
-
-// If no type is chosen yet, render the WELCOME look once
-if (!initialType && typeof getPresets === 'function') {
-  const welcomeList = getPresets('WELCOME') || [];
-  if (welcomeList.length) {
-    currentPresetIdx.set('WELCOME', 0);
-    applyPreset('WELCOME', 0);
-    setCaptionFromPreset(welcomeList[0] || {}, 'WELCOME');
-    if (typeof render === 'function') render();
-  }
-}
 
     // Payment: toggle user vs link by mode
     const payMode = document.getElementById('payMode');
@@ -602,6 +612,28 @@ if (!initialType && typeof getPresets === 'function') {
   // Initial render + on change
   renderTypeForm(typeSel.value);
   typeSel.addEventListener('change', ()=> renderTypeForm(typeSel.value));
+
+const t0 = typeSel?.value;
+if (t0 && getPresets(t0).length) {
+  currentPresetIdx.set(t0, 0);
+  applyPreset(t0, 0);
+  const list0 = getPresets(t0);
+  setCaptionFromPreset(list0[0] || {}, t0);
+}
+
+// =====================================================
+//  WELCOME PRESET: show default QR before any type chosen
+// =====================================================
+if (!typeSel.value && typeof getPresets === 'function') {
+  const welcomeList = getPresets('WELCOME') || [];
+  if (welcomeList.length) {
+    currentPresetIdx.set('WELCOME', 0);
+    applyPreset('WELCOME', 0);
+    setCaptionFromPreset(welcomeList[0] || {}, 'WELCOME');
+    if (typeof render === 'function') render();
+  }
+}
+
 })();
 
 (function () {
@@ -629,8 +661,33 @@ if (!initialType && typeof getPresets === 'function') {
     const t = typeSel.value;
     switch(t){
       case "URL": {
-        const u = val("urlData") || "https://example.org";
-        return u;
+        const raw = val("urlData") || "https://example.org";
+
+        // read optional utm fields
+        const s = (val("utmSource")   || "").trim();
+        const m = (val("utmMedium")   || "").trim();
+        const c = (val("utmCampaign") || "").trim();
+
+        // If nothing extra was entered, return as-is
+        if (!s && !m && !c) return raw;
+
+        try {
+          // Robust path when raw is a valid absolute URL
+          const u = new URL(raw);
+          if (s) u.searchParams.set("utm_source",   s);
+          if (m) u.searchParams.set("utm_medium",   m);
+          if (c) u.searchParams.set("utm_campaign", c);
+          return u.toString();
+        } catch {
+          // Fallback for non-absolute or invalid URLs:
+          // append query the "old-fashioned" way without breaking existing params
+          const join = raw.includes("?") ? "&" : "?";
+          const parts = [];
+          if (s) parts.push(`utm_source=${encodeURIComponent(s)}`);
+          if (m) parts.push(`utm_medium=${encodeURIComponent(m)}`);
+          if (c) parts.push(`utm_campaign=${encodeURIComponent(c)}`);
+          return parts.length ? `${raw}${join}${parts.join("&")}` : raw;
+        }
       }
       case "Payment": {
         const mode = val("payMode");

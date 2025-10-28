@@ -1,6 +1,6 @@
 {
   "types": {
-    "URL": ["urlData"],
+    "URL": ["urlData", "utmSource", "utmMedium", "utmCampaign"],
     "Payment": ["payMode", "payUser", "payLink", "payAmount", "payNote"],
     "WiFi": ["wifiSsid", "wifiPwd", "wifiSec", "wifiHidden"],
     "Contact": [
@@ -16,6 +16,9 @@
   },
   "fields": {
     "urlData":      {"label":"URL", "type":"text", "placeholder":"Your URL Here"},
+    "utmSource":   { "label": "UTM Source",   "type": "text", "placeholder": "site, newsletter, etc." },
+    "utmMedium":   { "label": "UTM Medium",   "type": "text", "placeholder": "qr, social, cpc…" },
+    "utmCampaign": { "label": "UTM Campaign", "type": "text", "placeholder": "campaign-name" },
 
     "payMode":      {"label":"Mode", "type":"select", "options":["Generic Link","Stripe Payment Link","PayPal.me","Venmo","Cash App"]},
     "payUser":      {"label":"Username / Handle", "type":"text", "placeholder":"@name or $cashtag"},
