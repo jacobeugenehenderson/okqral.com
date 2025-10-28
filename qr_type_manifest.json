@@ -74,10 +74,10 @@
       "name": "Welcome",
         "campaign": "click the 💖",
         "fontFamily": "Inter",
-        "captionColor": "#26282C",
+        "captionColor": "#496039",
         "bodyColor": "#444B55",
-        "eyeRingColor": "#999999",
-        "eyeCenterColor": "#76808F",
+        "eyeRingColor": "#A06B22",
+        "eyeCenterColor": "#283F19",
         "bgColor": "#EDEDED",
         "bgTransparent": false,
         "moduleShape": "Rounded",
@@ -88,7 +88,7 @@
         "modulesScale": 0.9,
         "centerMode": "Emoji",
         "centerEmoji": "🐿️",
-        "centerScale": 1.2
+        "centerScale": 1.5
     }
   ],
     "URL": [
