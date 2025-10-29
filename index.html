@@ -3,8 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>okQRal</title>
 
+  <!-- <head>  -->
+<title>okQRal — Free QR Codes for Free People</title>
+<meta name="description" content="No accounts. No tracking. Just beautifully private QR creation—right in your browser.">
+
+<link rel="canonical" href="https://okqral.com/">
+<meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff"  media="(prefers-color-scheme: light)">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="1200">
+<meta name="twitter:image:alt" content="A crisp QR with okQRal caption — Free QR Codes for Free People.">
+
+<meta property="og:title" content="okQRal — Free QR Codes for Free People">
+<meta property="og:description" content="Generate beautiful, private QR codes instantly. No logins, no tracking, no surveillance.">
+<meta property="og:image" content="https://okqral.com/assets/sms_preview.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://okqral.com/">
 
 <script>
 (function () {
@@ -21,31 +36,9 @@
 <!-- Fonts & Tailwind -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Serif:wght@400;600&family=Bebas+Neue&family=Public+Sans:wght@400;600&family=Playfair+Display:wght@400;600&family=Space+Grotesk:wght@400;600&family=Manrope:wght@400;600&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-
-<script>
-  // Use class strategy so toggling `.dark` works
-  window.tailwind = window.tailwind || {};
-  tailwind.config = { darkMode: 'class' };
-</script>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="./styles/theme.css">
 
   <!-- === Google Fonts (Work Sans + Preview Families) === -->
-  <link
-  href="https://fonts.googleapis.com/css2
-  ?family=Work+Sans:wght@400;500;600;700
-  &family=IBM+Plex+Sans:wght@400;600
-  &family=IBM+Plex+Serif:wght@400;600
-  &family=Bebas+Neue
-  &family=Public+Sans:wght@400;600
-  &family=Playfair+Display:wght@400;600
-  &family=Space+Grotesk:wght@400;600
-  &family=Manrope:wght@400;600
-  &family=Inter:wght@400;600
-  &family=JetBrains+Mono:wght@400;600
-  &display=swap"
-    rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@600&family=JetBrains+Mono:wght@400;600&display=swap">
      
  <script>
   // Use class strategy so toggling `.dark` works
@@ -501,30 +494,6 @@ new MutationObserver(() => applyPickerTheme())
   });
 </script>
 
-<!-- Modal header styled like step-cards -->
-<div class="flex items-center justify-end px-4 py-3 border-b border-[color:var(--featured-stroke-color)] dark:border-[color:var(--featured-stroke-color)]">
-  <button id="appClose"
-          class="w-8 h-8 grid place-items-center rounded-full 
-                 hover:bg-[color-mix(in_oklab,var(--md-sys-color-primary)20%,transparent)]
-                 dark:hover:bg-[color-mix(in_oklab,var(--md-sys-color-primary)25%,transparent)]
-                 focus:outline-none focus:ring-1 focus:ring-[color:var(--md-sys-color-primary)]
-                 transition"
-          title="Close menu"
-          aria-label="Close menu">
-    <span class="text-lg leading-none">✕</span>
-  </button>
-</div>
-
-    <!-- Centered menu items -->
-    <div class="p-2 static text-center" role="menu" aria-labelledby="appMenuBtn">
-      <!-- Dark-mode toggle (connected to global JS) -->
-      <button id="themeToggle" data-theme-toggle role="menuitem" type="button"
-        class="w-full px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-700
-              focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-center gap-2">
-        <span class="mi">🌙</span>
-        <span>Toggle Dark Mode</span>
-      </button>
-    </div>
 
 <script>
 (() => {
@@ -611,10 +580,7 @@ new MutationObserver(() => applyPickerTheme())
 })();
 </script>
 
-<script>
-  // Footer year
-  (function(){ const y=document.getElementById('year'); if (y) y.textContent=new Date().getFullYear(); })();
-
+<script> 
   // Make toggle match controls in case CSS didn't load early enough
   document.getElementById('themeToggle')?.classList.add('control');
 
@@ -656,23 +622,6 @@ new MutationObserver(() => applyPickerTheme())
 </script>
 
 <script>
-  // single source of truth for theme
-  window.setTheme = function(mode /* 'dark' | 'light' */) {
-    const r = document.documentElement;
-    r.classList.remove('dark','light');
-    r.classList.add(mode);
-    localStorage.setItem('theme', mode);
-  };
-
-  // initialize on load: saved choice → system preference
-  (function initTheme(){
-    const saved = localStorage.getItem('theme');
-    const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    setTheme(saved || sys);
-  })();
-</script>
-
-<script>
 (function(){
   const sel = document.getElementById('qrType');
   if (!sel) return; // guard in case the element isn’t rendered yet
@@ -701,6 +650,57 @@ new MutationObserver(() => applyPickerTheme())
   // Repaint whenever <html> class flips (your existing scripts do this)
   new MutationObserver(paintIcon)
     .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+
+<script>
+(function () {
+  const qs = new URLSearchParams(location.search);
+  const hashEgg = (location.hash.startsWith('#egg=') && location.hash.slice(5)) || '';
+  const egg = qs.get('egg') || hashEgg;
+
+  if (egg === 'love') {
+    showEasterEgg('https://okqral.com/assets/love.png');
+    // remove the flag from the URL so refresh returns to normal
+    history.replaceState({}, '', location.pathname);
+  }
+
+  function showEasterEgg(src){
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed; inset:0; background:rgba(0,0,0,.6);
+      display:flex; align-items:center; justify-content:center;
+      z-index:9999; padding:24px;
+    `;
+    const card = document.createElement('div');
+    card.style.cssText = `
+      background: var(--md-sys-color-surface, #fff);
+      color: var(--md-sys-color-on-surface, #111);
+      border-radius: 16px; max-width: 92vw; max-height: 90vh;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35); overflow:hidden;
+    `;
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = 'Love.jpg';
+    img.style.cssText = 'display:block; max-width:90vw; max-height:72vh; object-fit:contain; background:#fff';
+
+    const bar = document.createElement('div');
+    bar.style.cssText = 'display:flex; gap:12px; align-items:center; justify-content:space-between; padding:12px 16px;';
+    bar.innerHTML = `
+      <span style="font:600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto">Easter egg: Love.jpg</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <a href="/" style="text-decoration:none; font:600 13px system-ui">okQRal</a>
+        <button type="button" aria-label="Close" style="border:0; background:#000; color:#fff; border-radius:10px; padding:8px 12px; cursor:pointer;">Close</button>
+      </div>
+    `;
+    bar.querySelector('button').onclick = () => document.body.removeChild(overlay);
+
+    card.appendChild(img);
+    card.appendChild(bar);
+    overlay.appendChild(card);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) bar.querySelector('button').click(); });
+    document.body.appendChild(overlay);
+  }
 })();
 </script>
 
