@@ -1397,6 +1397,22 @@ label:has(input[type="color"]) input[type="color"]{
     z-index: 30;
   }
 
+  /* Mobile: let the stepper flow and meet the footer cleanly */
+@media (max-width: 1279px) {
+  #stepper{
+    position: static;     /* you already do this for .stage-stick, keep explicit */
+    height: auto;         /* ← override global 100dvh */
+    min-height: 0;        /* ← prevent flex/min-height surprises */
+    overflow: visible;    /* ← let page scroll, not the stepper */
+    padding-bottom: 0;    /* ← main already reserves footer space */
+  }
+
+  /* reserve space for the fixed footer using your token */
+  main{
+    padding-bottom: var(--footer-h, 72px);
+  }
+}
+
   /* Ensure the stepper is *not* sticky in stacked mode */
   #stepper.stage-stick { position: static; top: auto; }
 }
