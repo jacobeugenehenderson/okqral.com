@@ -244,6 +244,17 @@ body{
 main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 }
 
+@media (max-width: 1279px) {
+  main {
+    /* make room for footer height */
+    padding-bottom: var(--footer-h, 6rem);
+  }
+
+  /* optional: ensure cards scroll naturally */
+  #stepper {
+    position: static;
+  }
+}
 
 /* =========================
    3. CARDS / SURFACES
