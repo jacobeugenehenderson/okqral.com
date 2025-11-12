@@ -119,25 +119,7 @@ function wireECCLegacySelect(){
 
 /* === Preview Font (session-persistent) ============================ */
 const FONT_KEY     = 'okqral_font';
-// Store/select by base family name so it matches <option> values.
-const FONT_DEFAULT = 'Work Sans';
-
-function normalizeFont(val) {
-  if (!val) return FONT_DEFAULT;
-
-  let v = String(val).trim();
-  if (!v) return FONT_DEFAULT;
-
-  // Strip outer quotes if present
-  if ((v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1).trim();
-  }
-
-  // If it's a stack, only keep the first family as our key
-  const first = v.split(',')[0].trim();
-  return first || FONT_DEFAULT;
-}
+const FONT_DEFAULT = "'Work Sans', system-ui, sans-serif";
 
 // === Utility: Font helpers ===
 function getPreviewFont() {
@@ -145,26 +127,24 @@ function getPreviewFont() {
   return getComputedStyle(host || document.body).fontFamily;
 }
 
-function getFont() {
-  const stored = sessionStorage.getItem(FONT_KEY);
-  return normalizeFont(stored || FONT_DEFAULT);
+function getFont(){
+  return sessionStorage.getItem(FONT_KEY) || FONT_DEFAULT;
 }
 
-function setFont(val) {
-  const base = normalizeFont(val);
-  sessionStorage.setItem(FONT_KEY, base);
+function setFont(val){
+  const v = (val || '').trim() || FONT_DEFAULT;
+  sessionStorage.setItem(FONT_KEY, v);
 
   const sel = document.getElementById('fontFamily');
   if (sel) {
-    sel.value = base;            // this now matches <option> values
-    sel.style.fontFamily = base;
+    sel.value = v;                 // always set
+    sel.style.fontFamily = v;      // always paint
   }
 
   const preview = document.getElementById('qrPreview');
-  if (preview) {
-    preview.style.fontFamily = base;
-  }
+  if (preview) preview.style.fontFamily = v;
 
+  // Optional: ensure metrics are ready before render (prevents caption reflow)
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => typeof render === 'function' && render());
   } else if (typeof render === 'function') {
@@ -190,71 +170,14 @@ function wireFontSelect(){
   });
 
   // Initialize from session or default and paint the control
-    const initial = getFont();
-  setFont(initial); // setFont will sync select + preview
+  const initial = sel.value || getFont();
+  setFont(initial);                  // calls render()
+  sel.style.fontFamily = initial;
 
   wireFontSelect._done = true;
 }
 
-    document.addEventListener('DOMContentLoaded', wireFontSelect);
-
-    /* === Section color themes (Caption / Design / Mechanicals / Finish) === */
-    /* Uses body.theme--* classes defined in theme.css; no HTML changes needed. */
-    function applySectionTheme(step) {
-      const body = document.body;
-      if (!body) return;
-
-      const themeClasses = [
-        'theme--caption',
-        'theme--design',
-        'theme--mechanical',
-        'theme--finish'
-      ];
-
-      body.classList.remove(...themeClasses);
-
-      switch (step) {
-        case 'caption':
-          body.classList.add('theme--caption');
-          break;
-        case 'design':
-          body.classList.add('theme--design');
-          break;
-        case 'mechanicals':
-          body.classList.add('theme--mechanical');
-          break;
-        case 'finish':
-          body.classList.add('theme--finish');
-          break;
-        default:
-          // Fallback: rely on base tokens; no extra class.
-          break;
-      }
-    }
-
-    function wireSectionThemes() {
-      if (wireSectionThemes._done) return;
-
-      const cards = document.querySelectorAll('.step-card[data-step]');
-      if (!cards.length) return;
-
-      cards.forEach(card => {
-        const step = card.getAttribute('data-step');
-        const header = card.querySelector('.step-header');
-        if (!step || !header) return;
-
-        // On header click, adopt that section's theme.
-        header.addEventListener('click', () => applySectionTheme(step), { passive: true });
-      });
-
-      // Initial theme: use currently open step if present; otherwise Caption.
-      const open = document.querySelector('.step-card.is-open[data-step]');
-      applySectionTheme(open ? open.getAttribute('data-step') : 'caption');
-
-      wireSectionThemes._done = true;
-    }
-
-    document.addEventListener('DOMContentLoaded', wireSectionThemes);
+document.addEventListener('DOMContentLoaded', wireFontSelect);
     
     // -------- Emoji picker (catalog + search) --------
     const EMOJI_BIG = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","🙂","🙃","☺️","😋","😌","😍","🥰","😘","😗","😙","😚","😜","🤪","😝","😛","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😶‍🌫️","😏","😒","🙄","😬","🤥","😴","😪","😮‍💨","😌","😮","😯","😲","😳","🥵","🥶","😱","😨","😰","😥","😢","😭","😤","😡","😠","🤬","🤯","😷","🤒","🤕","🤢","🤮","🤧","🥴","😵","😵‍💫","🤠","🥳","😎","🤓","🧐","😕","🫤","😟","🙁","☹️","🤷","🤷‍♂️","🤷‍♀️","💪","👋","🤝","👍","👎","👏","🙌","👐","🤲","🤟","✌️","🤘","👌","🤌","🤏","👈","👉","☝️","👆","👇","✋","🖐️","🖖","✊","👊","💋","❤️","🩷","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","🌈","🏳️‍🌈","🏳️‍⚧️","⭐️","✨","🔥","⚡️","💥","🌟","☀️","🌙","🪐","🌍","🌎","🌏","🌊","⛰️","🏙️","🗽","🚗","✈️","🚀","⌚️","📱","💻","🖥️","🖨️","🎧","🎤","🎬","📷","📸","📝","📚","🔖","📎","🔬","🔧","⚙️","🍎","🍉","🍇","🍓","🍑","🍍","🥑","🌮","🍣","🍰","🍫","🍩","🍿","🍺","🍷","🍸","🎉","🎊","🎈","🎮","🎯","🏆","🏵️","✊🏿","✊🏾","✊🏽","✊🏼","✊🏻","👍🏿","👍🏾","👍🏽","👍🏼","👍🏻","👋🏿","👋🏾","👋🏽","👋🏼","👋🏻","🏁","🚩","🏳️","🏴","🏳️‍🌈","🏳️‍⚧️","🇺🇸","🇨🇦","🇬🇧","🇫🇷","🇩🇪","🇮🇹","🇪🇸","🇧🇷","🇯🇵","🇰🇷","🇨🇳","🇮🇳","🇿🇦"];
@@ -1420,8 +1343,7 @@ function composeCardSvg({
   cardWidth,
   transparentBg,
   bgColor,
-  captionHeadline,
-  captionBody,
+  captionText,
   captionColor,
   ecc,
   // QR look:
@@ -1431,40 +1353,18 @@ function composeCardSvg({
   modulesMode, modulesScale, modulesEmoji,
   centerMode, centerScale, centerEmoji,
 }) {
-    const NS = "http://www.w3.org/2000/svg";
+  const NS = "http://www.w3.org/2000/svg";
 
-  // Normalize caption content (max: 1 headline + 2 body lines)
-  const headTextRaw = (captionHeadline || '').trim();
-  const bodyTextRaw = (captionBody || '').replace(/\r/g, '').trim();
-
-  const bodyParts = bodyTextRaw ? bodyTextRaw.split('\n') : [];
-  const bodyLine1 = (bodyParts[0] || '').trim();
-  const bodyLine2 = (bodyParts[1] || '').trim();
-
-  const hasHeadline   = !!headTextRaw;
-  const hasBody1      = !!bodyLine1;
-  const hasBody2      = !!bodyLine2;
-  const hasAnyBody    = hasBody1 || hasBody2;
-  const hasAnyCaption = hasHeadline || hasAnyBody;
-
-    // Geometry: card height depends on caption mode
-  let cardHeight;
-  if (!hasAnyCaption) {
-    // 1) QR only — perfect square
-    cardHeight = cardWidth;
-  } else {
-    // 2–4) Caption variants — shared wallet card (0.63 : 1 width : height)
-    cardHeight = Math.round(cardWidth / 0.63);
-  }
+  // Geometry constants (tweak safely)
+  const CARD_ASPECT = 1 / 1.1;                       // 1:1 portrait
+  const cardHeight  = Math.round(cardWidth / CARD_ASPECT);
 
   const OUTER_PAD   = Math.round(cardWidth * 0.06); // frame inset
+  const QR_FRACTION = 0.62;                         // ~25–35% smaller than full-width
   const CAP_SIDE    = Math.round(cardWidth * 0.08);
   const CAP_TOPPAD  = Math.round(cardWidth * 0.05);
   const CAP_BOTPAD  = Math.round(cardWidth * 0.06);
 
-      // Fixed QR scale across all caption states
-  const QR_FRACTION = 0.78;
-  
   // Corner radius: read from CSS token so it matches the purple outline
   let RADIUS = Math.round(cardWidth * 0.07); // fallback
   const host2 = document.getElementById('qrPreview');
@@ -1506,28 +1406,12 @@ function composeCardSvg({
   }
   svg.appendChild(frame);
 
-const qrSize = Math.round(cardWidth * QR_FRACTION);
-const qrX = Math.round((cardWidth - qrSize) / 2);
+  // QR square placement (top-centered)
+  const qrSize = Math.round(cardWidth * QR_FRACTION);
+  const qrX = Math.round((cardWidth - qrSize) / 2);
+  const qrY = OUTER_PAD;
 
-// Equal top + side padding for wallet cards
-const PAD = Math.round(cardWidth * 0.08);
-let qrY;
-
-if (!hasAnyCaption) {
-  // square mode — perfectly centered
-  qrY = Math.round((cardHeight - qrSize) / 2);
-} else if (hasHeadline && !hasAnyBody) {
-  // headline only — equal inset all around
-  qrY = PAD;
-} else if (hasHeadline && hasBody1 && !hasBody2) {
-  // one body line — slightly lifted
-  qrY = Math.round(PAD * 0.8);
-} else {
-  // two+ lines — a touch higher still
-  qrY = Math.round(PAD * 0.6);
-}
-
-// Build the *inner* QR SVG with no caption and no background
+  // Build the *inner* QR SVG with no caption and no background
   const innerQR = buildQrSvg({
     text: buildText(),
     size: qrSize,
@@ -1554,131 +1438,48 @@ if (!hasAnyCaption) {
   innerQR.setAttribute('height', String(qrSize));
   svg.appendChild(innerQR);
 
-  // Caption region (only if we actually have caption content)
-  if (!hasAnyCaption) {
-    return svg; // Mode 1 handled: QR-only card
-  }
+  // Caption region = everything under the QR down to the bottom inset
+  const capY0     = qrY + qrSize + CAP_TOPPAD;
+  const capX      = CAP_SIDE;
+  const capWidth  = cardWidth - CAP_SIDE*2;
+  const capMaxH   = (cardHeight - OUTER_PAD) - CAP_BOTPAD - capY0;
 
-  const capY0      = qrY + qrSize + CAP_TOPPAD;
-  const capWidth   = cardWidth - CAP_SIDE * 2;
-  const capMaxH    = (cardHeight - OUTER_PAD) - CAP_BOTPAD - capY0;
-  const centerX    = cardWidth / 2;
-  const fontFamily = getPreviewFont();
-  const lineGap    = 1.15;
+  // Fit one line and scale
+  const lineGap   = 1.12;
+  const startSize = Math.round(cardWidth * 0.16);
+  const minSize   = Math.round(cardWidth * 0.095);
 
-  // We build up to three segments: [headline], [body1], [body2]
-  const segments = [];
-  let totalH = 0;
+  const layout = layoutCaptionLines(NS, {
+  text: captionText || '',
+  family: getPreviewFont(),
+  weight: '600',
+  maxWidth: capWidth,
+  maxLines: 1,
+  startSize,
+  minSize: Math.max(5, Math.round(cardWidth * 0.04)),
+  charBudget: 0,
+  twoLineTrigger: 999
+});
 
-  // Headline: single line, heavy
-  if (hasHeadline) {
-    const headLayout = layoutCaptionLines(NS, {
-      text: headTextRaw,
-      family: fontFamily,
-      weight: '700',
-      maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(cardWidth * 0.16),
-      minSize: Math.max(5, Math.round(cardWidth * 0.08)),
-      charBudget: 20,
-      twoLineTrigger: 999
-    });
-    if (headLayout && headLayout.lines && headLayout.lines[0]) {
-      const size = headLayout.fontSize;
-      segments.push({
-        text: headLayout.lines[0],
-        size,
-        weight: '700',
-        gapBefore: 0
-      });
-      totalH += size;
-    }
-  }
-
-  // Body line 1: optional, its own sizing
-  if (hasBody1) {
-    const ref = segments.length
-      ? segments[0].size * 0.70
-      : Math.round(cardWidth * 0.09);
-    const body1 = layoutCaptionLines(NS, {
-      text: bodyLine1,
-      family: fontFamily,
-      weight: '400',
-      maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(ref),
-      minSize: Math.max(5, Math.round(cardWidth * 0.045)),
-      charBudget: 40,
-      twoLineTrigger: 999
-    });
-    if (body1 && body1.lines && body1.lines[0]) {
-      const gap = segments.length ? segments[0].size * 0.40 : 0; // space below headline
-      const size = body1.fontSize;
-      segments.push({
-        text: body1.lines[0],
-        size,
-        weight: '400',
-        gapBefore: gap
-      });
-      totalH += gap + size;
-    }
-  }
-
-  // Body line 2: optional, scaled independently from line 1
-  if (hasBody2) {
-    const prevSize = segments.length
-      ? segments[segments.length - 1].size
-      : Math.round(cardWidth * 0.06);
-    const body2 = layoutCaptionLines(NS, {
-      text: bodyLine2,
-      family: fontFamily,
-      weight: '400',
-      maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(prevSize * 0.95),
-      minSize: Math.max(5, Math.round(cardWidth * 0.045)),
-      charBudget: 40,
-      twoLineTrigger: 999
-    });
-    if (body2 && body2.lines && body2.lines[0]) {
-      const gap = Math.round(prevSize * 0.25); // subtle space after body1
-      const size = body2.fontSize;
-      segments.push({
-        text: body2.lines[0],
-        size,
-        weight: '400',
-        gapBefore: gap
-      });
-      totalH += gap + size;
-    }
-  }
-
-  if (!segments.length || capMaxH <= 0) {
-    return svg;
-  }
-
-  // Vertically center the entire text stack between QR and bottom inset
-  let y = capY0 + (capMaxH - totalH) / 2;
-
-  for (const seg of segments) {
-    if (seg.gapBefore) {
-      y += seg.gapBefore;
-    }
-    y += seg.size;
-    const t = document.createElementNS(NS, 'text');
-    t.setAttribute('x', String(centerX));
-    t.setAttribute('y', String(y));
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', String(seg.size));
-    t.setAttribute('font-weight', seg.weight);
-    t.setAttribute('fill', captionColor || '#000');
-    t.setAttribute('font-family', fontFamily);
-    t.textContent = seg.text;
-    svg.appendChild(t);
-  }
-
-  return svg;
+  // Draw single-line headline centered horizontally AND vertically
+if (layout.lines.length && layout.lines[0]) {
+  const centerY = capY0 + (capMaxH / 2);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', String(cardWidth / 2));
+  t.setAttribute('y', String(centerY));
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('dominant-baseline', 'middle');
+  t.setAttribute('font-size', String(layout.fontSize));
+  t.setAttribute('font-weight', '600');
+  t.setAttribute('fill', captionColor || '#000');
+  t.setAttribute('font-family', getPreviewFont());
+  t.textContent = layout.lines[0];
+  svg.appendChild(t);
 }
+ 
+return svg;
+}
+
 // --- One-time wiring for Background controls ---
 let _bg_wired = false;
 function wireBackgroundBindingsOnce() {
@@ -1695,38 +1496,7 @@ function wireBackgroundBindingsOnce() {
 }
 
 let _right_wired = false;
-
-function applySectionThemeFromMode(mode) {
-  const body = document.body;
-  if (!body) return;
-
-  const classes = [
-    'theme--caption',
-    'theme--design',
-    'theme--mechanical',
-    'theme--finish'
-  ];
-  body.classList.remove(...classes);
-
-  switch (mode) {
-    case 'design':
-      body.classList.add('theme--design');
-      break;
-    case 'mechanicals':
-      body.classList.add('theme--mechanical');
-      break;
-    case 'finish':
-      body.classList.add('theme--finish');
-      break;
-    case 'caption':
-    default:
-      body.classList.add('theme--caption');
-      break;
-  }
-}
-
 function wireRightAccordionBehaviorOnce() {
-
   if (_right_wired) return;
 
   const right = document.getElementById('stepper');
@@ -1741,13 +1511,10 @@ function wireRightAccordionBehaviorOnce() {
   const mechanicalsBtn = mechanicalsCard?.querySelector('[data-step-toggle]');
   const finishBtn      = finishCard?.querySelector('[data-step-toggle]');
 
-    function setMode(mode) {
+  function setMode(mode) {
     right.classList.toggle('mech-active',   mode === 'mechanicals');
     right.classList.toggle('finish-active', mode === 'finish');
     if (mode === 'design') right.classList.remove('mech-active', 'finish-active');
-
-    // Sync global color theme with the active section
-    applySectionThemeFromMode(mode);
   }
 
   const isOpen = (card) => {
@@ -1818,12 +1585,14 @@ document.getElementById('bgColor')?.addEventListener('input', () => { refreshBac
   sendEvent('caption_toggle', { showCaption: show, ...currentUiState() });
 });
 
+
 // Run after DOM is ready (once)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot, { once: true });
 } else {
   boot();
 }
+
 // --- Initial global gate: everything off until a QR Type is chosen ---
 (function gateUntilTypeChosen(){
   const typeSel = document.getElementById('qrType');
@@ -1872,29 +1641,14 @@ function render() {
   const mount   = document.getElementById('qrMount');
   if (!preview || !mount) return;
 
-    // Capture caption state early
-  const showCap = !!document.getElementById('showCaption')?.checked;
-
-  const headlineEl = document.getElementById('campaign');     // Headline
-  const bodyEl     = document.getElementById('captionBody');  // Body
-
-  const headline = (
-    (headlineEl?.value && headlineEl.value.trim()) ||
-    headlineEl?.getAttribute('placeholder') ||
-    ''
-  ).slice(0, 20); // enforce headline budget
-
-  const body = (bodyEl?.value || '').trim().slice(0, 60);     // body budget
-
-    // Caption mode: drives stage ratio (square vs wallet)
-  const hasHeadline = showCap && !!headline;
-  const hasBody     = showCap && !!body;
-  const hasAnyCaption = hasHeadline || hasBody;
-
-  const stage = preview.closest('.preview-stage');
-  if (stage) {
-    stage.classList.toggle('preview--square', !hasAnyCaption);
-  }
+  // Capture caption state early
+const showCap = !!document.getElementById('showCaption')?.checked;
+const captionEl = document.getElementById('campaign');
+const caption = (
+  (captionEl?.value && captionEl.value.trim()) ||
+  captionEl?.getAttribute('placeholder') ||
+  ''
+);
 
   // Toggle visual style (stroke vs fill card)
   const isTransparent = !!document.getElementById('bgTransparent')?.checked;
@@ -1907,13 +1661,12 @@ function render() {
 
   // Build composed SVG
   const ecc = getECC();
-    const svg = composeCardSvg({
+  const svg = composeCardSvg({
     cardWidth,
     transparentBg: isTransparent,
     bgColor:        colorHex('bgColor', '#FFFFFF'),
-    captionHeadline: showCap ? headline : '',
-    captionBody:     showCap ? body : '',
-    captionColor:    colorHex('captionColor', '#000000'),
+    captionText:    showCap ? caption : '',      // ← only when checked
+    captionColor:   colorHex('captionColor', '#000000'),
     ecc,
 
     // look controls

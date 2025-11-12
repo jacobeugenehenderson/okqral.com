@@ -37,20 +37,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- === Google Fonts for all preview options === -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2
-?family=Bebas+Neue
-&family=IBM+Plex+Sans:wght@400;600
-&family=IBM+Plex+Serif:wght@400;600
-&family=Public+Sans:wght@400;600
-&family=Playfair+Display:wght@600
-&family=Space+Grotesk:wght@400;600
-&family=Manrope:wght@400;600
-&family=Inter:wght@400;600
-&family=JetBrains+Mono:wght@400;600
-&family=Work+Sans:wght@400;600
-&display=swap">
-
+  <!-- === Google Fonts (Work Sans + Preview Families) === -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@600&family=JetBrains+Mono:wght@400;600&display=swap">
+     
  <script>
   // Use class strategy so toggling `.dark` works
   window.tailwind = window.tailwind || {};
@@ -108,7 +97,7 @@
 <!-- LEFT: Preview Stage -->
 <section class="stage-stick justify-self-center w-full flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-<div class="preview-stage relative w-full max-w-[360px] mx-auto overflow-visible">
+<div class="preview-stage relative w-full max-w-[360px] mx-auto overflow-visible aspect-[1/1.1]">
     <div class="absolute inset-0 px-4 pb-4 pt-0">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
       <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
@@ -129,37 +118,18 @@
   class="stage-stick space-y-4 w-full max-w-[560px] mx-auto justify-self-center">
 
   <!-- Caption -->
-  <div class="step-card rounded-2xl border border-neutral-200 bg...ite overflow-hidden dark:bg-neutral-900 dark:border-neutral-800"
+  <div class="step-card rounded-2xl border border-neutral-200 bg-white overflow-hidden dark:bg-neutral-900 dark:border-neutral-800"
        data-step="caption">
     <button class="w-full step-header px-4 py-3 text-left font-medium" data-step-toggle>
       Caption
     </button>
     <div class="px-4 pb-4 space-y-3" data-step-panel>
-      <!-- Headline -->
       <label class="block text-sm">
-        <span class="mb-1 block text-xs uppercase tracking-[0.16em] opacity-70">
-          Headline
-        </span>
         <textarea id="campaign"
-          rows="1"
-          maxlength="20"
-          class="w-full rounded-md border px-3 py-2"
-          placeholder="LET'S GO"></textarea>
-      </label>
-
-      <!-- Body -->
-      <label class="block text-sm">
-        <span class="mb-1 block text-xs uppercase tracking-[0.16em] opacity-70">
-          Body (optional)
-        </span>
-        <textarea id="captionBody"
           rows="2"
-          maxlength="60"
           class="w-full rounded-md border px-3 py-2"
-          placeholder="Add a short supporting line"></textarea>
+          placeholder="ENGAGE"></textarea>
       </label>
-
-      <!-- Toggle -->
       <label class="inline-flex items-center gap-2">
         <input id="showCaption" type="checkbox" class="rounded border" checked />
         <span class="text-sm">Show caption under preview</span>

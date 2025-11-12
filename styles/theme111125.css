@@ -110,7 +110,7 @@ html.light, :root.light {
   --md-sys-color-surface-variant: #171421;   /* inputs, chips */
   --md-sys-color-muted:           #a1a1aa;
 
-      /* Strokes — fixed lilac so global chrome stays brand-colored */
+  /* Strokes */
   --md-sys-color-outline:         rgba(160,140,255,.35);
   --md-sys-color-outline-variant: rgba(160,140,255,.55);
 
@@ -171,8 +171,7 @@ html.light, :root.light {
 
   /* ----- Grid overlay knobs (for theme scaffold) ----- */
   --grid-size: 40px;     /* size of grid squares */
-  --grid-opacity: .20;   /* overall overlay opacity */
-  --grid-line-color: rgba(160,140,255,.8); /* fixed lilac for background grid */
+  --grid-opacity: .10;   /* overall overlay opacity */
 
   /* Hover / focus glow knobs */
   --hover-glow-color: color-mix(in oklab, var(--md-sys-color-primary) 30%, transparent);
@@ -199,51 +198,12 @@ html.light, :root.light {
     --bg-card-stroke-width:  1px;                /* tweak for subtlety */
     --bg-card-stroke-glow:   0 0 10px rgba(0,240,200,.35);  /* optional soft halo */
 
-    /* Featured / open card accent (default = global lilac story) */
-  --featured-stroke-width: 1px;
-  --step-color-primary: var(--md-sys-color-primary);
-  --featured-stroke-color: color-mix(in oklab, var(--step-color-primary) 45%, transparent);
-  --featured-stroke-glow: 0 0 12px color-mix(in oklab, var(--step-color-primary) 30%, transparent);
+  /* Featured / open card accent */
+  --featured-stroke-width: 1px; /* increase to 3–4px if you want chunkier */
+  --featured-stroke-color: color-mix(in oklab, var(--md-sys-color-primary) 45%, transparent);
+  --featured-stroke-glow: 0 0 12px rgba(160,140,255,.35);
 
-  /* Open step fills (used only inside cards) */
-  --step-header-open-bg: color-mix(in oklab, var(--ui-surface) 85%, var(--step-color-primary) 15%);
-  --step-card-open-bg:   color-mix(in oklab, var(--ui-surface) 94%, var(--step-color-primary) 6%);
-
-  --stepper-stroke-closed: hsl(221, 100%, 7%);
- 
-}
-
-  /* ==========================================================
-   SECTION COLOR THEMES
-   Uses existing brand knobs: --brand-h / --brand-s / --brand-l
-   ========================================================== */
-
-/* Default / Caption — violet */
-body.theme--caption {
-  --step-color-primary: hsl(266 92% 66%);
-  --step-header-open-bg: color-mix(in oklab, var(--ui-surface) 85%, var(--step-color-primary) 15%);
-  --step-card-open-bg:   color-mix(in oklab, var(--ui-surface) 94%, var(--step-color-primary) 6%);
-}
-
-/* Design — bright yellow */
-body.theme--design {
-  --step-color-primary: #FFD200;
-  --step-header-open-bg: color-mix(in oklab, var(--ui-surface) 80%, var(--step-color-primary) 20%);
-  --step-card-open-bg:   color-mix(in oklab, var(--ui-surface) 92%, var(--step-color-primary) 8%);
-}
-
-/* Mechanicals — dense blue */
-body.theme--mechanical {
-  --step-color-primary: #00208F;
-  --step-header-open-bg: color-mix(in oklab, var(--ui-surface) 82%, var(--step-color-primary) 18%);
-  --step-card-open-bg:   color-mix(in oklab, var(--ui-surface) 94%, var(--step-color-primary) 6%);
-}
-
-/* Finish — pastel peach */
-body.theme--finish {
-  --step-color-primary: #FFC8A2;
-  --step-header-open-bg: color-mix(in oklab, var(--ui-surface) 82%, var(--step-color-primary) 18%);
-  --step-card-open-bg:   color-mix(in oklab, var(--ui-surface) 94%, var(--step-color-primary) 6%);
+  --stepper-stroke-closed: hsl(221, 100%, 7%); /* custom color */
 }
 
 /* shared sticky offset */
@@ -273,8 +233,8 @@ body{
 .theme-grid::before{
   content:""; position:fixed; inset:0; pointer-events:none; opacity: var(--grid-opacity);
   background:
-    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+    linear-gradient(to right, var(--md-sys-color-primary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--md-sys-color-primary) 1px, transparent 1px);
   background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
   z-index:0;
 }
@@ -311,40 +271,20 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 /* Open card highlight */
 #stepper>div{ transition:background-color .15s,border-color .15s; }
 #stepper .step-header{ transition:background-color .15s,border-color .15s,color .15s; }
-
 #stepper>div.is-open .step-header {
   border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
-  background: var(--step-header-open-bg);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
 }
 
-/* When a step is open, its outer shell adopts the local step color story */
-.step-card.is-open{
-  --ui-stroke: color-mix(in oklab, var(--step-color-primary) 40%, transparent);
-  --ui-stroke-hover: color-mix(in oklab, var(--step-color-primary) 60%, transparent);
-
-  background: var(--step-card-open-bg);
-  border-color: var(--featured-stroke-color);
+#stepper>div.is-open {
+  border: var(--featured-stroke-width) solid var(--featured-stroke-color);
   box-shadow: var(--featured-stroke-glow);
-}
-
-/* Inputs & labels inside the active step pick up the section accent */
-#stepper > div.is-open input,
-#stepper > div.is-open select,
-#stepper > div.is-open textarea,
-#stepper > div.is-open .control,
-#stepper > div.is-open .topctl {
-  border-color: color-mix(in oklab, var(--step-color-primary) 40%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--step-color-primary) 40%, transparent) inset;
-}
-
-#stepper > div.is-open label,
-#stepper > div.is-open .field-label {
-  color: color-mix(in oklab, var(--md-sys-color-on-surface) 86%, var(--step-color-primary) 14%);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 6%, transparent);
 }
 
 /* Mechanicals (open): unified stripe and no duplicate borders */
 .step-card[data-step="mechanicals"].is-open .step-header-wrap {
-  background: color-mix(in oklab, var(--step-color-primary) 12%, transparent);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
   border-bottom: 0 !important;
   position: relative;
 }
@@ -413,8 +353,7 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 
 .step-card[data-step="caption"] .caption-toggle-row { justify-self: start; }
 
-.step-card[data-step="caption"] label:has(#campaign),
-.step-card[data-step="caption"] label:has(#captionBody){
+.step-card[data-step="caption"] label:has(#campaign){
   display: block;
   width: 100%;
 }
@@ -453,15 +392,11 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 }
 
 /* If the input is inside a <label>, collapse it to a single column */
-label:has(#campaign),
-label:has(#captionBody){
+label:has(#campaign){
   display:grid;
   grid-template-columns: 1fr !important;
 }
-label:has(#campaign) > *,
-label:has(#captionBody) > *{
-  min-width:0;
-}
+label:has(#campaign) > *{ min-width:0; }
 
 /* Caption text input: single row, full width */
 #campaign{
@@ -474,19 +409,6 @@ label:has(#captionBody) > *{
   overflow: hidden;
   box-sizing: border-box;
   box-shadow: none;       /* Focus Ring */
-}
-
-/* Caption body input: multi-line, matching shell */
-#captionBody{
-  display:block;
-  width: 100%;
-  min-height: calc(var(--density-control-h) * 1.5);
-  padding: 0.5rem .75rem;
-  line-height: 1.3;
-  resize: vertical;
-  overflow: auto;
-  box-sizing: border-box;
-  box-shadow: none;
 }
 
 /* Nudge the text down inside each step-card */
@@ -510,16 +432,6 @@ label:has(#captionBody) > *{
   border: 1px solid var(--ui-stroke);
   border-radius: var(--shape-corner-lg);
   box-shadow: var(--elevation-2);
-}
-
-/* When a step is open, its outer shell adopts the local step color story */
-#stepper .step-card.is-open{
-  --ui-stroke: color-mix(in oklab, var(--step-color-primary) 40%, transparent);
-  --ui-stroke-hover: color-mix(in oklab, var(--step-color-primary) 60%, transparent);
-
-  background: var(--step-card-open-bg);
-  border-color: var(--featured-stroke-color);
-  box-shadow: var(--featured-stroke-glow);
 }
 
 .step-card .step-header{
@@ -648,11 +560,10 @@ body.kbd .ecc-btn[aria-pressed="true"] {
 
 /* Design (open): unified stripe and no duplicate borders (mirror of Mechanicals) */
 .step-card[data-step="design"].is-open .step-header-wrap{
-  background: color-mix(in oklab, var(--step-color-primary) 12%, transparent);
+  background: color-mix(in oklab, var(--md-sys-color-primary) 12%, transparent);
   border-bottom: 0 !important;
   position: relative;
 }
-
 .step-card[data-step="design"].is-open .step-header{ background: transparent !important; border-bottom: 0 !important; }
 .step-card[data-step="design"].is-open .step-header-wrap::after{
   content:""; position:absolute; left:0; right:0; bottom:0; height:1px; background:var(--ui-stroke); pointer-events:none;
@@ -674,35 +585,6 @@ body.kbd .ecc-btn[aria-pressed="true"] {
 .step-card[data-step="design"] .step-header-wrap [data-step-toggle]{
   flex:1 1 auto;
   padding-right:0;
-}
-
-/* Theme-tinted section headers — translucent, per-section color */
-body.theme--caption  .step-card[data-step="caption"] .step-header,
-body.theme--design   .step-card[data-step="design"] .step-header,
-body.theme--mechanical .step-card[data-step="mechanicals"] .step-header,
-body.theme--finish   .step-card[data-step="finish"] .step-header {
-  background: color-mix(in oklab,
-    var(--step-color-primary) 20%,
-    rgba(5,5,8,0.96)
-  );
-  border-bottom-color: var(--md-sys-color-outline-variant);
-}
-
-/* STEP CARD STROKES — DECOUPLE FROM GLOBAL LILAC
-   --------------------------------------------- */
-
-/* All stepper cards use the neutral closed stroke by default,
-   not the global --ui-stroke (lilac). */
-#stepper > .step-card {
-  border-color: var(--stepper-stroke-closed) !important;
-}
-
-/* Open step: outer stroke follows the section accent color,
-   never the global lilac outline. */
-#stepper .step-card.is-open {
-  border-color: var(--step-color-primary) !important;
-  box-shadow: var(--featured-stroke-glow);
-  background: var(--step-card-open-bg);
 }
 
 /* =========================
@@ -967,14 +849,6 @@ textarea::placeholder{
   opacity: var(--typo-ph-opacity);
 }
 
-/* Utility: “temp” or dummy inline text outside inputs */
-.text-temp {
-  color: var(--typo-ph-color);
-  font-weight: var(--typo-ph-weight);
-  opacity: var(--typo-ph-opacity);
-  font-style: italic;
-}
-
 /* default: no transitions before JS marks ready */
 :not(.ui-ready) #stepper .step-header,
 :not(.ui-ready) #stepper > .step-card{
@@ -1043,7 +917,7 @@ textarea::placeholder{
   width: 100%;
   min-width: 320px;
   max-width: 400px;
-  aspect-ratio: 0.63 / 1;             /* wallet card when caption present */
+  aspect-ratio: 10 / 11;              /* wallet-ish (~1.10:1 height:width) */
   margin-inline: auto;
   border-radius: var(--shape-corner-lg);
   display: grid;
@@ -1478,7 +1352,7 @@ label:has(input[type="color"]) input[type="color"]{
 }
 
 /* Types Hover for Pills (shared) */
-#qrType:hover,
+*#qrType:hover,
 #appMenuBtn:hover {
   box-shadow:
     0 0 0 1px var(--ui-stroke-hover) inset,
@@ -1529,25 +1403,24 @@ label:has(input[type="color"]) input[type="color"]{
     z-index: 30;
   }
 
-  /* Let the stepper flow and meet the footer cleanly */
+  /* Mobile: let the stepper flow and meet the footer cleanly */
+@media (max-width: 1279px) {
   #stepper{
-    position: static;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-    padding-bottom: 0;
+    position: static;     /* you already do this for .stage-stick, keep explicit */
+    height: auto;         /* ← override global 100dvh */
+    min-height: 0;        /* ← prevent flex/min-height surprises */
+    overflow: visible;    /* ← let page scroll, not the stepper */
+    padding-bottom: 0;    /* ← main already reserves footer space */
   }
 
-  /* Reserve space for fixed footer */
+  /* reserve space for the fixed footer using your token */
   main{
     padding-bottom: var(--footer-h, 72px);
   }
+}
 
-  /* Ensure the stepper is not sticky in stacked mode */
-  #stepper.stage-stick {
-    position: static;
-    top: auto;
-  }
+  /* Ensure the stepper is *not* sticky in stacked mode */
+  #stepper.stage-stick { position: static; top: auto; }
 }
 
   /* Park the stepper up under the phone */
