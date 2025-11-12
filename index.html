@@ -79,7 +79,7 @@
         <!-- Type -->
         <label class="text-sm">
           <span class="sr-only">Type</span>
-          <select id="qrType" class="topctl topctl--chev text-sm" aria-label="Type">
+          <select id="qrType" class="topctl topctl--chev text-sm start-here" aria-label="Type">
             <option value="" disabled selected hidden>💖</option>
             <option>URL</option>
             <option>Payment</option>
@@ -108,10 +108,10 @@
 <!-- LEFT: Preview Stage -->
 <section class="stage-stick justify-self-center w-full flex justify-center">
   <!-- Own the iPhone aspect ratio here -->
-<div class="preview-stage relative w-full max-w-[360px] mx-auto overflow-visible">
-    <div class="absolute inset-0 px-4 pb-4 pt-0">
+<div class="preview-stage relative mx-auto overflow-visible">
+    <div class="absolute inset-0 p-0" style="overflow:visible">
       <!-- Single card: stroke/fill live here; SVG stays transparent -->
-      <div id="qrPreview" class="w-full h-full rounded-xl overflow-visible flex flex-col">
+      <div id="qrPreview" class="card--fill w-full h-full overflow-visible flex flex-col">
         <!-- live SVG mounts here -->
         <div id="qrMount" class="flex-1 min-h-[200px] grid justify-items-center items-start w-full"></div>
       </div>
@@ -137,26 +137,22 @@
     <div class="px-4 pb-4 space-y-3" data-step-panel>
       <!-- Headline -->
       <label class="block text-sm">
-        <span class="mb-1 block text-xs uppercase tracking-[0.16em] opacity-70">
-          Headline
-        </span>
+        <span class="sr-only">Headline</span>
         <textarea id="campaign"
           rows="1"
           maxlength="20"
           class="w-full rounded-md border px-3 py-2"
-          placeholder="LET'S GO"></textarea>
+          placeholder="Headline"></textarea>
       </label>
 
       <!-- Body -->
       <label class="block text-sm">
-        <span class="mb-1 block text-xs uppercase tracking-[0.16em] opacity-70">
-          Body (optional)
-        </span>
+        <span class="sr-only">Body (optional)</span>
         <textarea id="captionBody"
-          rows="2"
+          rows="1"
           maxlength="60"
           class="w-full rounded-md border px-3 py-2"
-          placeholder="Add a short supporting line"></textarea>
+          placeholder="Body (optional)"></textarea>
       </label>
 
       <!-- Toggle -->
@@ -305,17 +301,30 @@
       </label>
     </div>
 
-    <!-- Background (last) -->
-    <div class="grid grid-cols-[auto,1fr,auto] items-center gap-3">
-      <span class="text-sm">Background</span>
-      <div class="flex items-center gap-2">
-        <input id="bgColor" type="color" class="h-9 w-10 rounded-md border" value="#FFFFFF" />
-        <input id="bgColorHex" type="text" class="flex-1 rounded-md border px-3 py-2 text-sm" placeholder="#RRGGBB" />
-      </div>
-      <label class="inline-flex items-center gap-2">
-        <input id="bgTransparent" type="checkbox" class="rounded border" />
-        <span class="text-sm">Transparent</span>
+    <!-- Background (gradient) -->
+    <div class="grid grid-cols-[auto,auto,1fr] items-start gap-3">
+      <label class="inline-flex items-center gap-2 leading-9">
+        <input id="bgTransparent" type="checkbox" class="rounded border" onchange="refreshBackground()" />
+        <span class="text-sm">Background</span>
       </label>
+
+      <div class="flex flex-col gap-2 col-span-2">
+        <!-- Top color + hex + opacity -->
+        <div class="flex items-center gap-2">
+          <input id="bgTopColor" type="color" class="h-9 w-10 rounded-md border" value="#FFFFFF" />
+          <input id="bgTopHex"   type="text"  class="w-28 rounded-md border px-3 py-2 text-sm truncate" placeholder="#RRGGBB" />
+          <input id="bgTopAlpha" type="range" min="0" max="100" step="1" class="w-36 h-6" oninput="this.nextElementSibling.value=this.value" value="100" />
+          <input type="number" min="0" max="100" step="1" value="100" class="w-16 rounded-md border px-2 py-2 text-sm" oninput="this.previousElementSibling.value=this.value" aria-label="Top opacity (%)" />
+        </div>
+
+        <!-- Bottom color + hex + opacity -->
+        <div class="flex items-center gap-2">
+          <input id="bgBottomColor" type="color" class="h-9 w-10 rounded-md border" value="#FFFFFF" />
+          <input id="bgBottomHex"   type="text"  class="w-28 rounded-md border px-3 py-2 text-sm truncate" placeholder="#RRGGBB" />
+          <input id="bgBottomAlpha" type="range" min="0" max="100" step="1" class="w-36 h-6" oninput="this.nextElementSibling.value=this.value" value="100" />
+          <input type="number" min="0" max="100" step="1" value="100" class="w-16 rounded-md border px-2 py-2 text-sm" oninput="this.previousElementSibling.value=this.value" aria-label="Bottom opacity (%)" />
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -616,22 +625,54 @@ new MutationObserver(() => applyPickerTheme())
 
   // When you already compute transparency in render(), also toggle card classes:
   (function hookPreviewFrame(){
-    const origRender = window.render;
-    if (!origRender) return;
-    window.render = function(){
-      origRender();
-      const preview = document.getElementById('qrPreview');
-      if (!preview) return;
-      const wantTransparent = !!document.getElementById('bgTransparent')?.checked;
-      const frameColor = (document.getElementById('bgColor')?.value || '#A78BFA');
-      preview.style.setProperty('--frame-color', frameColor);
-      preview.style.setProperty('--frame-w', '2px');
-      preview.classList.toggle('card--stroke', wantTransparent);
-      preview.classList.toggle('card--fill', !wantTransparent);
-    };
-    // run once to apply class immediately
-    window.render();
-  })();
+  const origRender = window.render;
+  if (!origRender) return;
+
+  function hexToRgb(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || "");
+    if (!m) return {r:255,g:255,b:255};
+    return { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) };
+  }
+  function rgba(hex, a){
+    const {r,g,b} = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a))})`;
+  }
+
+  window.render = function(){
+    origRender();
+
+    const preview = document.getElementById('qrPreview');
+    if (!preview) return;
+
+    const wantTransparent = !document.getElementById('bgTransparent')?.checked;
+
+    const topHex   = document.getElementById('bgTopHex')?.value?.trim()   || document.getElementById('bgTopColor')?.value || '#FFFFFF';
+    const botHex   = document.getElementById('bgBottomHex')?.value?.trim()|| document.getElementById('bgBottomColor')?.value || topHex;
+
+    const topA     = (parseFloat(document.getElementById('bgTopAlpha')?.value)    || 100) / 100;
+    const botA     = (parseFloat(document.getElementById('bgBottomAlpha')?.value) || 100) / 100;
+
+    // keep a single “frame color” token for any places that still use it
+    preview.style.setProperty('--frame-color', topHex);
+    preview.style.setProperty('--frame-w', '2px');
+
+    // Build the paint: solid if both colors match, otherwise a vertical gradient
+    let paint;
+    if (topHex.toLowerCase() === botHex.toLowerCase() && Math.abs(topA - botA) < 0.001){
+      paint = rgba(topHex, topA);
+    } else {
+      paint = `linear-gradient(180deg, ${rgba(topHex, topA)} 0%, ${rgba(botHex, botA)} 100%)`;
+    }
+    preview.style.setProperty('--bg-paint', paint);
+
+    // Stroke vs Fill occupy the EXACT same box
+    preview.classList.toggle('card--stroke', wantTransparent);
+    preview.classList.toggle('card--fill', !wantTransparent);
+  };
+
+  // run once to apply immediately
+  window.render();
+})();
 
   // Ensure arrows are wired (safe no-ops if you have logic already)
   document.getElementById('prevSubtype')?.addEventListener('click', () => {
@@ -654,8 +695,8 @@ new MutationObserver(() => applyPickerTheme())
 <script>
 (function(){
   const sel = document.getElementById('qrType');
-  if (!sel) return; // guard in case the element isn’t rendered yet
-  const sync = () => sel.classList.toggle('is-placeholder', !sel.value);
+  if (!sel) return;
+  const sync = () => sel.classList.toggle('start-here', !sel.value);
   sel.addEventListener('change', sync);
   sync(); // on load
 })();

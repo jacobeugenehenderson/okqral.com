@@ -78,6 +78,9 @@ html.light, :root.light {
   --md-sys-color-primary-pressed: color-mix(in oklab, var(--md-sys-color-primary) 80%, black);
   --md-sys-color-on-primary: #ffffff;
   
+  /* Stage Frame */
+  --stage-frame: #1ff0ff; /* staging stroke color */
+  --stage-frame-w: 1px;   /* stroke width */
 
   /* Typography */
   --font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
@@ -167,12 +170,18 @@ html.light, :root.light {
 
   /* ----- Export defaults (read by JS) ----- */
   --export-png-scale: 3;
-  --export-filename: "LGBTQRCode";
+  --export-filename: "okQRal";
 
   /* ----- Grid overlay knobs (for theme scaffold) ----- */
-  --grid-size: 40px;     /* size of grid squares */
-  --grid-opacity: .20;   /* overall overlay opacity */
-  --grid-line-color: rgba(160,140,255,.8); /* fixed lilac for background grid */
+  --grid-size: 40px;
+  --grid-opacity: .85;
+  --grid-line-color: hsl(275 100% 70%); /* hard neon violet */
+  --grid-glow-color: hsl(175 100% 62%);
+  --grid-glow-opacity: .55;         /* ↓ a touch less global glow */
+  --grid-glow-blur: 4px;            /* ↓ was effectively ~8px */
+  --grid-vignette-strength: .14;    /* ↓ weaker white “bloom” */
+  --grid-vignette-size: 94%;        /* ↑ larger = gentler center spot */
+  --grid-vignette-y: 42%;           /* center height bias */
 
   /* Hover / focus glow knobs */
   --hover-glow-color: color-mix(in oklab, var(--md-sys-color-primary) 30%, transparent);
@@ -270,14 +279,79 @@ body{
 }
 
 .theme-grid{ position:relative; }
+/* LAYER 1 — lines + primary glow (screen blend) */
 .theme-grid::before{
-  content:""; position:fixed; inset:0; pointer-events:none; opacity: var(--grid-opacity);
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity: var(--grid-opacity);
+
+  /* hard violet lines */
   background:
     linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
   background-size: var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
+
+  /* aqua bloom riding over the lines */
+  box-shadow:
+    0 0 24px 6px color-mix(in oklab, var(--grid-glow-color) 70%, transparent);
+
+  mix-blend-mode: screen;
+  /* ↑ more neon, less fog */
+  filter: saturate(1.6) contrast(1.12) blur(.15px);
   z-index:0;
 }
+
+/* LAYER 2 — soft overlay + true backdrop blur */
+.theme-grid::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+
+  /* vivid bloom halo behind the grid */
+  opacity:var(--grid-glow-opacity, .55);
+  background:
+    radial-gradient(110% 85% at 50% 36%,
+  color-mix(in oklab, var(--grid-glow-color) 46%, transparent) 0%,
+  transparent 72%)
+    ,
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+
+  background-size:
+    100% 100%,
+    var(--grid-size) var(--grid-size),
+    var(--grid-size) var(--grid-size);
+
+  background-blend-mode: screen, screen, normal;
+
+  /* radiant but tight — not foggy */
+  filter: blur(4px) brightness(1.18) saturate(1.75);
+  -webkit-backdrop-filter: blur(2px) saturate(1.05);
+          backdrop-filter: blur(2px) saturate(1.05);
+
+  /* keeps light focused near center, fades at edges */
+  mask-image: radial-gradient(95% 75% at 50% 45%, #000 70%, transparent 100%);
+}
+
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .theme-grid::after{
+    background-blend-mode:overlay,normal;
+    -webkit-backdrop-filter:none;
+            backdrop-filter:none;
+  }
+}
+
+@media (prefers-reduced-transparency:reduce){
+  .theme-grid::after{
+    -webkit-backdrop-filter:none;
+            backdrop-filter:none;
+  }
+}
+
 .theme-grid>*{ position:relative; z-index:1; }
 
 /* Make room for the fixed footer + a little air */
@@ -312,9 +386,22 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 #stepper>div{ transition:background-color .15s,border-color .15s; }
 #stepper .step-header{ transition:background-color .15s,border-color .15s,color .15s; }
 
+/* Collapsed header: subtle tint + crisp edge (reuses existing knobs) */
+#stepper > .step-card:not(.is-open) .step-header{
+  background: color-mix(in oklab, var(--ui-surface) 92%, var(--step-color-primary) 8%);
+  border-bottom: 1px solid var(--stepper-stroke-closed);
+  box-shadow:
+    0 0 0 1px var(--stepper-stroke-closed) inset,
+    0 1px 0 rgba(0,0,0,.06);
+}
+#stepper > .step-card:not(.is-open) .step-header:hover{
+  background: color-mix(in oklab, var(--ui-surface) 88%, var(--step-color-primary) 12%);
+}
+
 #stepper>div.is-open .step-header {
   border-bottom: var(--featured-stroke-width) solid var(--featured-stroke-color);
   background: var(--step-header-open-bg);
+  backdrop-filter: saturate(1.1) blur(6px);
 }
 
 /* When a step is open, its outer shell adopts the local step color story */
@@ -522,8 +609,8 @@ label:has(#captionBody) > *{
   box-shadow: var(--featured-stroke-glow);
 }
 
-.step-card .step-header{
-  background: var(--ui-surface);
+.step-card:not(.is-open) .step-header{
+  /* no background here; collapsed is handled above already */
   color: var(--md-sys-color-on-surface);
   border-bottom: 1px solid var(--ui-stroke);
 }
@@ -682,9 +769,10 @@ body.theme--design   .step-card[data-step="design"] .step-header,
 body.theme--mechanical .step-card[data-step="mechanicals"] .step-header,
 body.theme--finish   .step-card[data-step="finish"] .step-header {
   background: color-mix(in oklab,
-    var(--step-color-primary) 20%,
-    rgba(5,5,8,0.96)
+    var(--step-color-primary) 18%,
+    rgba(5,5,8,0.60)
   );
+  backdrop-filter: saturate(1.1) blur(6px);
   border-bottom-color: var(--md-sys-color-outline-variant);
 }
 
@@ -817,9 +905,6 @@ select.rounded-md,
   box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
   border-color: var(--md-sys-color-primary);
 }
-
-.preview-stage { z-index: auto; }
-#qrPreview    { z-index: auto; }
 
 /* Emoji picker buttons */
 #emojiGrid button{
@@ -1037,69 +1122,81 @@ textarea::placeholder{
    5. PREVIEW LAYOUT
 ========================= */
 
+/* -----------------------------------------------------------------------
+   QR PREVIEW CARD — single geometry; stroke (OFF) vs gradient fill (ON)
+   ----------------------------------------------------------------------- */
+#qrPreview{
+  position: relative;
+  border-radius: var(--phone-radius);
+  overflow: clip;                      /* clip to the rounded card */
+  background: transparent !important;  /* no card fill here */
+  border: 0 !important; 
+  box-shadow: none !important; 
+  isolation: isolate;                  /* local stacking; ::before stays behind */
+}
+
+/* One pseudo-element draws BOTH modes so size/shape never drift */
+#qrPreview::before{
+  content:"";
+  position:absolute;
+  z-index: 0;
+  inset:0;                  /* exact same box in both modes */
+  border-radius:inherit;
+  pointer-events:none;
+}
+
+/* Background ON = gradient fill (set via --bg-fill) */
+#qrPreview.card--fill::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background: var(--bg-paint, #fff);   /* solid or gradient from JS */
+  opacity: var(--bg-alpha, 1);         /* 🔑 hook your slider sets */
+  box-shadow:none;
+  pointer-events:none;
+  z-index:0;                           /* behind QR + caption */
+}
+
+/* Background OFF = empty bright turquoise stroke */
+#qrPreview.card--stroke::before{
+  inset:0;
+  border-radius:inherit;
+  background: transparent;
+  box-shadow:none;
+  border: var(--stage-frame-w, 3px) solid var(--stage-frame, #1ff0ff);
+}
+
 /* Portrait stage wrapper (outer container) */
 .preview-stage{
   position: relative;
-  width: 100%;
-  min-width: 320px;
-  max-width: 400px;
-  aspect-ratio: 0.63 / 1;             /* wallet card when caption present */
+  background: transparent !important;
+  width: clamp(250px, 26vw, 330px);
+  aspect-ratio: .63 / 1;   /* wallet portrait */
   margin-inline: auto;
   border-radius: var(--shape-corner-lg);
   display: grid;
-  align-items: start;                  /* card hugs top when tall */
+  align-items: start;
   justify-items: center;
   overflow: visible;
+  padding: 0;
 }
 
 /* Square state when there is no caption */
 .preview-stage.preview--square{
-  aspect-ratio: 1 / 1;                /* 🔴 true square shell */
-  align-items: center;                /* center QR/card vertically */
-}
-
-/* Main preview wrapper (card) */
-#qrPreview{
-  position: relative;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;                 /* ← keep card height equal to stage */
-  border-radius: var(--phone-radius);
-  margin: 0;
-  border-radius: var(--phone-radius); /* stroke */
-  background: transparent;
-  overflow: clip;               /* ← confine fill and children to radius */
-  box-shadow: none; /* replace filter drop-shadow */
-  /* filter: drop-shadow(...)  ← remove this */
-}
-
-/* Transparent mode — border & glow live on this same element */
-#qrPreview.card--stroke {
-  background: none;
-  border: calc(var(--qr-stroke-width) * 1px) solid var(--qr-stroke-color);
-  border-radius: var(--phone-radius);
-  box-shadow: var(--qr-stroke-glow);
-}
-
-/* Filled mode — same box, same radius, just a fill color */
-#qrPreview.card--fill {
-  background: var(--frame-color, #ffffff);
-  border: var(--bg-card-stroke-width) solid var(--bg-card-stroke-color);
-  border-radius: var(--phone-radius);
-  box-shadow: var(--bg-card-stroke-glow);
+  width: clamp(250px, 26vw, 330px);
+  aspect-ratio: 1 / 1;        /* true square shell */
+  align-items: start;          /* top-anchor like wallet mode */
 }
 
 /* QR mount = container for the SVG */
 #qrMount{
-  width: 100%;
-  height: 100%;
-  margin-top: 0;
-  max-height: 100%;
-  border-radius: inherit;
-  display: grid;
-  place-items: center;
+  position: relative;
+  z-index: 1;                         /* above the ::before paint plate */
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important; /* never add a host fill */
 }
 
 #qrMount > svg{
@@ -1107,6 +1204,10 @@ textarea::placeholder{
   width: 100%;
   height: auto;
   border-radius: inherit;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important; /* no bg rects from generators */
 }
 
   .preview-stage,
@@ -1129,38 +1230,11 @@ textarea::placeholder{
   border-top: 1px solid var(--ui-stroke);
 }
 
-@media (max-width: 1279px) {
-  .preview-stage::before {
-    /* pull the plate in so less shadow is visible */
-    inset: 0;                              
-    border-radius: var(--phone-radius, 20px);
-  }
-}
-
 /* …but keep the on-phone UI (arrows) interactive */
 .preview-stage .nav-arrow {
   pointer-events: auto;
-  z-index: 30;                  /* make sure they sit above the stepper */
-  position: absolute;           /* they already are, this is just defensive */
-}
-
-/* =========================================================
-   Click-through preview: everything is glass except arrows
-   ========================================================= */
-.preview-stage,
-.preview-stage::before,         /* the opaque plate under the phone */
-.preview-stage > .absolute,     /* the absolute wrapper inside the stage */
-#qrPreview,                     /* the phone card container */
-#qrMount,                       /* SVG mount container */
-#qrMount > svg {                /* the live QR SVG itself */
-  pointer-events: none !important;
-}
-
-/* Keep on-phone arrows interactive */
-.preview-stage .nav-arrow{
-  pointer-events: auto !important;
-  z-index: 50;                  /* keep them above the stepper */
-  position: absolute;           /* they already are; this is just defensive */
+  z-index: 50;            /* ↑ ensure above sticky + stepper */
+  position: absolute;
 }
 
 /* Make the WHOLE sticky preview block "glass" on mobile/stacked */
@@ -1170,7 +1244,7 @@ textarea::placeholder{
 
   /* everything inside the preview stack also glass */
   .preview-stage,
-  .preview-stage::before,
+  .preview-stage > .absolute,
   #qrPreview,
   #qrMount,
   #qrMount > svg { pointer-events: none !important; }
@@ -1180,6 +1254,21 @@ textarea::placeholder{
   main > section.stage-stick:first-of-type .nav-arrow {
     pointer-events: auto !important;
   }
+}
+
+/* ===== Welcome mode (no type chosen) ===== */
+/* Works for the old .start-here and the new .is-placeholder class */
+body:has(#qrType.start-here) #stepper,
+body:has(#qrType.is-placeholder) #stepper {
+  display: none !important;
+}
+body:has(#qrType.start-here) main,
+body:has(#qrType.is-placeholder) main {
+  padding-bottom: var(--footer-h);
+}
+body:has(#qrType.start-here) .preview-stage,
+body:has(#qrType.is-placeholder) .preview-stage {
+  margin-bottom: min(8vh, 96px);
 }
 
 /* =========================
@@ -1229,14 +1318,14 @@ textarea::placeholder{
 /* Put each arrow just outside the card edges */
 #prevSubtype{
   top:50%;
-  left: calc(-1.25 * var(--edge-gutter));        /* or: calc(-1 * var(--edge-gutter)) */
+  left: calc(-2 * var(--edge-gutter));        /* or: calc(-1 * var(--edge-gutter)) */
   right: auto;
   transform: translateY(-50%);
   z-index: 20;
 }
 #nextSubtype{
   top:50%;
-  right: calc(-1.25 * var(--edge-gutter));       /* or: calc(-1 * var(--edge-gutter)) */
+  right: calc(-2 * var(--edge-gutter));       /* or: calc(-1 * var(--edge-gutter)) */
   left:  auto;
   transform: translateY(-50%);
   z-index: 20;
@@ -1531,12 +1620,14 @@ label:has(input[type="color"]) input[type="color"]{
 
   /* Let the stepper flow and meet the footer cleanly */
   #stepper{
-    position: static;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-    padding-bottom: 0;
-  }
+  position: static;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+  /* reserve space so the last tab can scroll above the fixed footer */
+  padding-bottom: calc(var(--footer-h, 72px) + 96px);
+  margin-bottom: 16px; /* a touch of breathing room */
+}
 
   /* Reserve space for fixed footer */
   main{
@@ -1553,10 +1644,11 @@ label:has(input[type="color"]) input[type="color"]{
   /* Park the stepper up under the phone */
 @media (max-width: 1279px){
   :root{
-    --preview-overlap: 0px;
-    --preview-gap: 20px;
-    --park-nudge: 40px;
-  }
+  /* how far the stepper is allowed to slide under the phone */
+  --preview-overlap: clamp(180px, 52vh, 320px);
+  --preview-gap: 12px;
+  --park-nudge: 16px;
+}
 
   #stepper{
     margin-top: calc(var(--preview-overlap) * -1);
@@ -1616,16 +1708,6 @@ label:has(input[type="color"]) input[type="color"]{
   flex-direction: column;   /* stack instead of row */
   align-items: flex-start;  /* left-align the checkbox label */
   gap: 0.5rem;              /* small vertical space */
-}
-
-@media (max-width: 1279px){
-  .preview-stage,
-  .preview-stage > .absolute,
-  #qrPreview,
-  #qrMount,
-  #qrMount > svg { pointer-events: none !important; }
-
-  .preview-stage .nav-arrow { pointer-events: auto !important; }
 }
 
 /* --- Global Modal Priority Layer --- */
