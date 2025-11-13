@@ -324,7 +324,7 @@ window.closeEmoji = closeEmoji;
     // fire 'input' so live preview updates immediately
     window.emojiTarget.dispatchEvent(new Event('input', { bubbles:true }));
   }
-  closeEmoji();
+  // Do NOT close the emoji modal here; user decides when to close.
 });
 
 emojiGrid.appendChild(b); }); }

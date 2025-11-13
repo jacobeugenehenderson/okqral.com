@@ -415,7 +415,7 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
 }
 
 /* Inputs & labels inside the active step pick up the section accent */
-#stepper > div.is-open input,
+#stepper > div.is-open input:not([type="range"]),
 #stepper > div.is-open select,
 #stepper > div.is-open textarea,
 #stepper > div.is-open .control,
@@ -1117,6 +1117,8 @@ textarea::placeholder{
   background: transparent !important;  /* beats #stepper>div.is-open .step-header */
   border-bottom: 0;
 }
+
+#emojiSearch { display: none !important; }
 
 /* =========================
    5. PREVIEW LAYOUT
