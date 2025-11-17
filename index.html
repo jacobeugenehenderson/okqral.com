@@ -6,9 +6,8 @@
 
   <!-- <head>  -->
 <link rel="icon" type="image/png" href="favicon.png">
-
-<title>🤠 okQRal — Free QR Codes for Free People</title>
-<meta name="description" content="No account needed. QRs created in your browser.">
+<title>okQRal — Free QR Codes for Free People</title>
+<meta name="description" content="No accounts or tracking. QR creation in your browser.">
 
 <link rel="canonical" href="https://okqral.com/">
 <meta name="theme-color" content="#0b0b0b" media="(prefers-color-scheme: dark)">
@@ -386,13 +385,11 @@
   </div>
 </div>
 
-      <!-- Emoji Modal -->
-    <!-- Emoji Modal -->
-    <div id="emojiModal" class="hidden">
-      <!-- Backdrop -->
-      <div class="emoji-backdrop"></div>
-      <!-- Panel -->
-      <div class="w-full max-w-3xl rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">        <div class="text-sm font-medium"></div>
+  <!-- Emoji Modal -->
+  <div id="emojiModal" class="hidden fixed inset-0 z-50 modal-bg grid place-items-center p-4">
+    <div class="w-full max-w-3xl rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-lg">
+      <div class="flex items-center gap-3 px-4 py-3 border-b dark:border-neutral-800">
+        <div class="text-sm font-medium"></div>
         <input id="emojiSearch" type="text" placeholder="Search…" class="ml-auto w-64 rounded-md border px-3 py-2 text-sm" />
         <button
         id="emojiClose"
@@ -482,6 +479,66 @@
     })();
   })();
 </script>
+
+<!-- Emoji picker wiring -->
+<script type="module">
+  import 'https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js';
+
+  const emojiModal  = document.getElementById('emojiModal');
+  const emojiClose  = document.getElementById('emojiClose');
+  let   emojiTarget = null;
+
+  function openEmoji(targetId) {
+    emojiTarget = document.getElementById(targetId) || null;
+    emojiModal.classList.remove('hidden');
+    queueMicrotask(() => document.querySelector('emoji-picker')?.focus());
+  }
+  function closeEmoji() {
+    emojiModal.classList.add('hidden');
+    emojiTarget = null;
+    if (typeof window.render === 'function') window.render();
+  }
+  window.openEmoji  = openEmoji;
+  window.closeEmoji = closeEmoji;
+
+  document.querySelectorAll('[data-emoji-target]')
+    .forEach(btn => btn.addEventListener('click', () => openEmoji(btn.getAttribute('data-emoji-target'))));
+  emojiClose?.addEventListener('click', closeEmoji);
+  emojiModal?.addEventListener('click', (e) => { if (e.target === emojiModal) closeEmoji(); });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !emojiModal.classList.contains('hidden')) closeEmoji(); });
+
+  // Insert picker and connect selection
+  const grid   = document.getElementById('emojiGrid');
+  const picker = document.createElement('emoji-picker');
+  picker.setAttribute('emojis-per-row', '10');
+  picker.setAttribute('skin-tone-emoji', '👍');
+  picker.style.width = '100%';
+  picker.style.maxHeight = '60vh';
+  picker.style.border = '0';
+
+  const applyPickerTheme = () => {
+    picker.setAttribute('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+  };
+  applyPickerTheme();
+  document.getElementById('themeToggle')?.addEventListener('click', applyPickerTheme);
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', applyPickerTheme);
+
+  // Keep picker in sync whenever <html> toggles dark/light
+new MutationObserver(() => applyPickerTheme())
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+  grid.replaceWith(picker);
+
+  picker.addEventListener('emoji-click', (e) => {
+    const char = e.detail.unicode;
+    if (emojiTarget) {
+      emojiTarget.value = char;
+      emojiTarget.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    closeEmoji();
+  });
+</script>
+
 
 <script>
 (() => {
