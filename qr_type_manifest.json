@@ -321,10 +321,10 @@
   "presets": {
     "WELCOME": [
       {
-        "name": "Welcome",
+        "name": "Hi Shugg",
         "fontFamily": "Inter",
         "captionHeadline": "WELCOME",
-        "captionBody": "",
+        "captionBody": "Click the 💖 to get started",
         "captionColor": "#496039",
         "bodyColor": "#444B55",
         "eyeRingColor": "#283F19",
@@ -425,7 +425,7 @@
     "Payment": [
       {
         "name": "Reimbursement",
-        "campaign": "Pay Up Yall!",
+        "campaign": "Pay Up Y'all!",
         "fontFamily": "Playfair Display",
         "captionColor": "#112951",
         "bodyColor": "#707070",
