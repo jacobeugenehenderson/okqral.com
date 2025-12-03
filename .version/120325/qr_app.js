@@ -1,30 +1,29 @@
 "use strict";
 // This file runs in the browser.  No <script> or HTML tags belong here.
 
-(function loadQRCodeOnce() {
+(function loadQRCodeOnce(){
   if (window.QRCode && window.QRCode.CorrectLevel) return; // already loaded
 
-  function use(url, onload) {
+  function use(url, onload){
     var s = document.createElement('script');
     s.src = url;
     s.async = true;
     s.onload = onload;
-    s.onerror = function () {
-      // If the first URL fails (your preferred host), fall back to cdnjs
+    s.onerror = function(){
       if (!/cdnjs/.test(url)) {
         use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', onload);
       } else {
-        console.error('Failed to load QRCode library from', url);
+        console.error('Failed to load QRCode library from both sources.');
       }
     };
     document.head.appendChild(s);
   }
 
-  // TODO: if you have a preferred primary URL, call use('<your primary URL>', function(){ ... });
-  // For now, just load from cdnjs directly:
-  use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', function () {
-    // QRCode is now available as window.QRCode
-  });
+  // try local first, then CDN
+  use('vendor/qrcode.min.js', function () {
+  if (typeof window.render === 'function') requestAnimationFrame(window.render);
+});
+
 })();
 
 // --- Dark/Light toggle + persistence ---
@@ -612,19 +611,20 @@ window.getPresets = (t) => {
 // =====================================================
 //  Default ECC button: preselect "M" on first load
 // =====================================================
-document.addEventListener('DOMContentLoaded', function setDefaultECC() {
+(function setDefaultECC(){
   const eccBtns = document.querySelectorAll('.ecc-btn');
   if (!eccBtns.length) return;
 
+  // find the M button and mark it as active
   eccBtns.forEach(btn => {
     const isDefault = btn.dataset.ecc === 'M';
     btn.classList.toggle('active', isDefault);
     btn.setAttribute('aria-pressed', isDefault ? 'true' : 'false');
   });
 
-  // Global knob used by your QR generation logic
+  // store it in your global state if you have one
   window.currentECC = 'M';
-});
+})();
 
     const frag = document.createDocumentFragment();
 
@@ -2307,7 +2307,7 @@ function applyPhoneBackgroundForExport(svgEl) {
   // Clean any previous rect we might have added (in case of repeated exports)
   svgEl.querySelector('[data-export-bg]')?.remove();
 
-  return; // background now handled in PNG export; keep SVG transparent
+  if (isTransparent) return; // transparent preview => transparent export
 
   // Size from viewBox (fallback to DOM size if needed)
   const vb = (svgEl.getAttribute('viewBox') || `0 0 ${svgEl.clientWidth} ${svgEl.clientHeight}`)
@@ -2339,6 +2339,7 @@ function downloadSvg(filename = 'qr.svg') {
   if (!src) return;
 
   const svg = src.cloneNode(true);       // don’t touch the live preview
+  applyPhoneBackgroundForExport(svg);    // add background if needed
 
   const xml = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
@@ -2373,52 +2374,6 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
   canvas.width = Math.round(w * scale);
   canvas.height = Math.round(h * scale);
   const ctx = canvas.getContext('2d');
-
-  // Match preview background (gradient vs transparent) before drawing SVG
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = background ON (fill)
-
-  if (!isTransparent) {
-    // Read the same knobs used by updatePreviewBackground()
-    const topHex = document.getElementById('bgTopHex')?.value
-                || document.getElementById('bgTopColor')?.value || '#FFFFFF';
-    const botHex = document.getElementById('bgBottomHex')?.value
-                || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-    const topA   = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
-    const botA   = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
-
-    const hexToRgb = (h) => {
-      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
-      if (!m) return { r: 255, g: 255, b: 255 };
-      return {
-        r: parseInt(m[1], 16),
-        g: parseInt(m[2], 16),
-        b: parseInt(m[3], 16),
-      };
-    };
-
-    const rgba = (hex, pct) => {
-      const { r, g, b } = hexToRgb(hex);
-      const a = Math.max(0, Math.min(100, Number(pct))) / 100;
-      return `rgba(${r}, ${g}, ${b}, ${a})`;
-    };
-
-    // Vertical gradient, 0% → 100% height, same as CSS 180deg
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, rgba(topHex, topA));
-    grad.addColorStop(1, rgba(botHex, botA));
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  // Ensure custom fonts are ready before rasterizing the SVG
-  if (document.fonts && document.fonts.ready) {
-    try {
-      await document.fonts.ready;
-    } catch (_) {
-      // non-fatal; fall back to whatever is loaded
-    }
-  }
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   URL.revokeObjectURL(url);

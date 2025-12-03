@@ -1,30 +1,29 @@
 "use strict";
 // This file runs in the browser.  No <script> or HTML tags belong here.
 
-(function loadQRCodeOnce() {
+(function loadQRCodeOnce(){
   if (window.QRCode && window.QRCode.CorrectLevel) return; // already loaded
 
-  function use(url, onload) {
+  function use(url, onload){
     var s = document.createElement('script');
     s.src = url;
     s.async = true;
     s.onload = onload;
-    s.onerror = function () {
-      // If the first URL fails (your preferred host), fall back to cdnjs
+    s.onerror = function(){
       if (!/cdnjs/.test(url)) {
         use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', onload);
       } else {
-        console.error('Failed to load QRCode library from', url);
+        console.error('Failed to load QRCode library from both sources.');
       }
     };
     document.head.appendChild(s);
   }
 
-  // TODO: if you have a preferred primary URL, call use('<your primary URL>', function(){ ... });
-  // For now, just load from cdnjs directly:
-  use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', function () {
-    // QRCode is now available as window.QRCode
-  });
+  // try local first, then CDN
+  use('vendor/qrcode.min.js', function () {
+  if (typeof window.render === 'function') requestAnimationFrame(window.render);
+});
+
 })();
 
 // --- Dark/Light toggle + persistence ---
@@ -300,6 +299,10 @@ function wireFontSelect(){
       window.emojiTarget = document.getElementById(targetId);
       emojiSearch.value = '';
       renderEmojiGrid('');
+      // ⬇️ Portal to <body> so it sits above any local z-index/transform
+      if (emojiModal.parentElement !== document.body) {
+        document.body.appendChild(emojiModal);
+      }
       emojiModal.classList.remove('hidden');
       document.documentElement.classList.add('emoji-open');   // ⬅️ disable phone taps
       emojiSearch.focus();
@@ -321,7 +324,7 @@ window.closeEmoji = closeEmoji;
     // fire 'input' so live preview updates immediately
     window.emojiTarget.dispatchEvent(new Event('input', { bubbles:true }));
   }
-  // Do NOT close the emoji modal here; user decides when to close.
+  closeEmoji();
 });
 
 emojiGrid.appendChild(b); }); }
@@ -426,113 +429,14 @@ emojiGrid.appendChild(b); }); }
 
       mapQuery:   { type:'text',  label:'Search query', placeholder:'Statue of Liberty' },
       mapLat:     { type:'text',  label:'Latitude', placeholder:'40.6892' },
-            mapLng:    { type:'text',  label:'Longitude', placeholder:'-74.0445' },
+      mapLng:     { type:'text',  label:'Longitude', placeholder:'-74.0445' },
       mapProvider:{ type:'select',label:'Provider', options:['google','geo'] }
-    },
-
-    // WELCOME always exists offline
-    presets: {
-      "WELCOME": [
-        {
-          "name": "Welcome",
-          "fontFamily": "Inter",
-
-          "captionHeadline": "WELCOME",
-          "captionBody": "",
-
-          "captionColor": "#496039",
-          "bodyColor": "#444B55",
-
-          "eyeRingColor": "#283F19",
-          "eyeCenterColor": "#A06B22",
-
-          "bgTopColor":    "#EDEDED",
-          "bgTopAlpha":     100,
-          "bgBottomColor": "#EDEDED",
-          "bgBottomAlpha":  100,
-          "bgTransparent": true,
-
-          "moduleShape": "Rounded",
-          "eyeRingShape": "Rounded",
-          "eyeCenterShape": "Circle",
-
-          "modulesMode": "Emoji",
-          "modulesEmoji": "🟫",
-          "modulesScale": 0.9,
-
-          "centerMode": "Emoji",
-          "centerEmoji": "🐿️",
-          "centerScale": 1.5
-        }
-      ]
     }
   };
 }
 
 // after manifest = ... is set
 window.manifest = manifest;
-
-// --- BACKGROUND GRADIENT + STROKE HANDLERS ---
-// Helpers for converting and painting background
-function _hexToRGBA(hex, a = 1) {
-  const h = (hex || '#ffffff').replace('#', '').trim();
-  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-function _bgGradientFromKnobs() {
-  const top = document.getElementById('bgTopColor')?.value || '#FFFFFF';
-  const bot = document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-  const ta = (+document.getElementById('bgTopAlpha')?.value || 100) / 100;
-  const ba = (+document.getElementById('bgBottomAlpha')?.value || 100) / 100;
-  return `linear-gradient(180deg, ${_hexToRGBA(top, ta)}, ${_hexToRGBA(bot, ba)})`;
-}
-
-window.refreshBackground = function refreshBackground () {
-  const card = document.getElementById('qrPreview');
-  if (!card) return;
-
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = Background ON
-
-  // legacy single-field (no-ops if missing)
-  const swatch = document.getElementById('bgColor');
-  const hex    = document.getElementById('bgColorHex') ||
-                 document.getElementById('bgHex')     ||
-                 document.getElementById('bghex');
-
-  if (hex)    hex.disabled    = isTransparent;
-  if (swatch) swatch.disabled = isTransparent;
-
-  // gradient fields
-  const hexes   = [...document.querySelectorAll('#bgTopHex,#bgBottomHex')];
-  const swatchs = [...document.querySelectorAll('#bgTopColor,#bgBottomColor')];
-  const sliders = [...document.querySelectorAll('#bgTopAlpha,#bgBottomAlpha')];
-  [...hexes, ...swatchs, ...sliders].forEach(el => { if (el) el.disabled = isTransparent; });
-
-  // class gating (stroke vs fill)
-  card.classList.toggle('card--stroke', isTransparent);
-  card.classList.toggle('card--fill', !isTransparent);
-
-  // paint the CSS gradient var used by ::before
-  updatePreviewBackground();
-};
-
-// Live re-paint when user moves any background knob
-['bgTransparent','bgTopColor','bgBottomColor','bgTopHex','bgBottomHex','bgTopAlpha','bgBottomAlpha'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', () => {
-    window.refreshBackground();
-    if (typeof window.render === 'function') requestAnimationFrame(window.render);
-  });
-});
-
-// Default: Background ON at first paint
-document.addEventListener('DOMContentLoaded', () => {
-  // Respect whatever the preset (or saved UI) already set.
-  if (typeof window.refreshBackground === 'function') window.refreshBackground();
-});
 
 // optional helpers (put them right here too)
 window.getTypeFields = (t) => {
@@ -612,19 +516,20 @@ window.getPresets = (t) => {
 // =====================================================
 //  Default ECC button: preselect "M" on first load
 // =====================================================
-document.addEventListener('DOMContentLoaded', function setDefaultECC() {
+(function setDefaultECC(){
   const eccBtns = document.querySelectorAll('.ecc-btn');
   if (!eccBtns.length) return;
 
+  // find the M button and mark it as active
   eccBtns.forEach(btn => {
     const isDefault = btn.dataset.ecc === 'M';
     btn.classList.toggle('active', isDefault);
     btn.setAttribute('aria-pressed', isDefault ? 'true' : 'false');
   });
 
-  // Global knob used by your QR generation logic
+  // store it in your global state if you have one
   window.currentECC = 'M';
-});
+})();
 
     const frag = document.createDocumentFragment();
 
@@ -689,33 +594,10 @@ function setPlaceholder(id, text) {
   if (p.captionColor)        setValAndFire('captionColor', p.captionColor);
   if (p.bodyColor)           setValAndFire('bodyColor', p.bodyColor);
   if (p.eyeRingColor)        setValAndFire('eyeRingColor', p.eyeRingColor);
-  if (p.eyeCenterColor) setValAndFire('eyeCenterColor', p.eyeCenterColor);
-
-  // Prefer new gradient knobs if present
-  if (p.bgTopColor)    setValAndFire('bgTopHex',    p.bgTopColor);
-  if (p.bgBottomColor) setValAndFire('bgBottomHex', p.bgBottomColor);
-  if (p.bgTopAlpha != null)    setValAndFire('bgTopAlpha',    p.bgTopAlpha);
-  if (p.bgBottomAlpha != null) setValAndFire('bgBottomAlpha', p.bgBottomAlpha);
-
-  // Back-compat: single bgColor → mirror to both ends
-  if (p.bgColor && !p.bgTopColor && !p.bgBottomColor) {
-    const c = p.bgColor;
-    const topCol = document.getElementById('bgTopColor');
-    const botCol = document.getElementById('bgBottomColor');
-    const topHex = document.getElementById('bgTopHex');
-    const botHex = document.getElementById('bgBottomHex');
-    if (topCol) topCol.value = c;
-    if (botCol) botCol.value = c;
-    if (topHex) topHex.value = c;
-    if (botHex) botHex.value = c;
-    const ta = document.getElementById('bgTopAlpha');
-    const ba = document.getElementById('bgBottomAlpha');
-    if (ta) { ta.value = 100; ta.dispatchEvent(new Event('input')); }
-    if (ba) { ba.value = 100; ba.dispatchEvent(new Event('input')); }
-}
-
-if (typeof p.bgTransparent === 'boolean')
-  setValAndFire('bgTransparent', !p.bgTransparent);
+  if (p.eyeCenterColor)      setValAndFire('eyeCenterColor', p.eyeCenterColor);
+  if (p.bgColor)             setValAndFire('bgColor', p.bgColor);
+  if (typeof p.bgTransparent === 'boolean')
+                             setValAndFire('bgTransparent', p.bgTransparent);
 
   if (p.moduleShape)         setValAndFire('moduleShape', p.moduleShape);
   if (p.eyeRingShape)        setValAndFire('eyeRingShape', p.eyeRingShape);
@@ -866,32 +748,8 @@ if (!typeSel.value && typeof getPresets === 'function') {
     currentPresetIdx.set('WELCOME', 0);
     applyPreset('WELCOME', 0);
     setCaptionFromPreset(welcomeList[0] || {}, 'WELCOME');
-  } else {
-    // Synthesize a safe default so something renders
-    const topCol = document.getElementById('bgTopColor');
-    const botCol = document.getElementById('bgBottomColor');
-    const topHex = document.getElementById('bgTopHex');
-    const botHex = document.getElementById('bgBottomHex');
-    if (topCol) topCol.value = '#EDEDED';
-    if (botCol) botCol.value = '#EDEDED';
-    if (topHex) topHex.value = '#EDEDED';
-    if (botHex) botHex.value = '#EDEDED';
-    const ta = document.getElementById('bgTopAlpha');
-    const ba = document.getElementById('bgBottomAlpha');
-    if (ta) { ta.value = 100; ta.dispatchEvent(new Event('input')); }
-    if (ba) { ba.value = 100; ba.dispatchEvent(new Event('input')); }
-    const tcb = document.getElementById('bgTransparent');
-    if (tcb) { tcb.checked = true; tcb.dispatchEvent(new Event('change', { bubbles: true })); }
-    const head = document.getElementById('campaign');
-    const body = document.getElementById('captionBody');
-    if (head) { head.value = 'WELCOME'; head.dispatchEvent(new Event('input', { bubbles: true })); }
-    if (body) { body.value = '';       body.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (typeof render === 'function') render();
   }
-
-  if (typeof window.refreshBackground === 'function') {
-  window.refreshBackground();
-  }
-  if (typeof render === 'function') render();
 }
 
 })();
@@ -1278,11 +1136,12 @@ svg.setAttribute('height', totalH);
 svg.setAttribute('viewBox', `0 0 ${size} ${totalH}`);
 svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-// ----- Card geometry (used by QR/caption layout; no SVG bg fill here) -----
+// ----- Card background + decorative frame stroke -----
 const inset       = Math.round(size * 0.04);
 const strokeWidth = Math.max(1, Math.round(size * 0.02));
 
-let cornerRadius = Math.round(size * 0.07);
+// Derive corner radius from CSS so the SVG card matches the purple outline
+let cornerRadius = Math.round(size * 0.07); // fallback
 const host = document.getElementById('qrPreview');
 if (host) {
   const cs    = getComputedStyle(host);
@@ -1290,18 +1149,31 @@ if (host) {
   const token = parseFloat(cs.getPropertyValue('--shape-corner-lg')) ||
                 parseFloat(cs.borderTopLeftRadius) || 0;
   if (w > 0 && token > 0) {
-    const scale = size / w;
+    const scale = size / w;                 // CSS px → SVG units
     cornerRadius = Math.round(token * scale);
   }
 }
+// HARD CLAMP so rx never exceeds half the drawable side
 const drawable = size - (inset + strokeWidth) * 2;
 cornerRadius   = Math.max(1, Math.min(cornerRadius, Math.floor(drawable / 2)));
 
+// If caption is ON => portrait (size × totalH); OFF => square (size × size)
 const cardX = inset;
 const cardY = inset;
 const cardW = size - inset * 2;
 const cardH = showCaption ? totalH : size;
-// ⤴️ No background rect. The card fill/stroke is owned by CSS ::before.
+// Filled background (skip if bare)
+if (!bare && !transparentBg) {
+   const bg = document.createElementNS(ns, 'rect');
+   bg.setAttribute('x', cardX);
+   bg.setAttribute('y', cardY);
+   bg.setAttribute('width',  cardW);
+   bg.setAttribute('height', cardH);
+   bg.setAttribute('rx', cornerRadius);
+   bg.setAttribute('ry', cornerRadius);
+   bg.setAttribute('fill', bgColor);
+   svg.appendChild(bg);
+}
 
 // Optional: a soft outer glow for the stroke
 function ensureGlowDef() {
@@ -1588,13 +1460,7 @@ svg.style.height = 'auto';
 function composeCardSvg({
   cardWidth,
   transparentBg,
-
-  // gradient inputs
-  bgTopColor,
-  bgBottomColor,
-  bgTopAlpha,    // 0–100
-  bgBottomAlpha, // 0–100
-
+  bgColor,
   captionHeadline,
   captionBody,
   captionColor,
@@ -1638,7 +1504,7 @@ function composeCardSvg({
   const CAP_BOTPAD  = Math.round(cardWidth * 0.06);
 
       // Fixed QR scale across all caption states
-  const QR_FRACTION = 0.75;
+  const QR_FRACTION = 0.78;
   
   // Corner radius: read from CSS token so it matches the purple outline
   let RADIUS = Math.round(cardWidth * 0.07); // fallback
@@ -1673,28 +1539,33 @@ function composeCardSvg({
   frame.setAttribute('height', String(cardHeight - OUTER_PAD*2));
   frame.setAttribute('rx', String(RADIUS));
   frame.setAttribute('ry', String(RADIUS));
-
-// The card paint is owned by CSS (#qrPreview::before).
-// Only add a frame rect when transparent mode is active.
-if (transparentBg) {
-  frame.setAttribute('fill', 'none');
+  if (!transparentBg) {
+    frame.setAttribute('fill', bgColor);
+  } else {
+    frame.setAttribute('fill', 'none');
+    // no inline stroke; CSS will style .qr-frame under .card--stroke
+  }
   svg.appendChild(frame);
-}
 
 const qrSize = Math.round(cardWidth * QR_FRACTION);
 const qrX = Math.round((cardWidth - qrSize) / 2);
 
 // Equal top + side padding for wallet cards
-const PAD  = Math.round(cardWidth * 0.08);       
-const SIDE = Math.round((cardWidth - qrSize) / 2); // actual side padding from centering
+const PAD = Math.round(cardWidth * 0.08);
 let qrY;
 
 if (!hasAnyCaption) {
   // square mode — perfectly centered
   qrY = Math.round((cardHeight - qrSize) / 2);
+} else if (hasHeadline && !hasAnyBody) {
+  // headline only — equal inset all around
+  qrY = PAD;
+} else if (hasHeadline && hasBody1 && !hasBody2) {
+  // one body line — slightly lifted
+  qrY = Math.round(PAD * 0.8);
 } else {
-  // wallet modes — keep QR equidistant from top and sides (static)
-  qrY = SIDE;
+  // two+ lines — a touch higher still
+  qrY = Math.round(PAD * 0.6);
 }
 
 // Build the *inner* QR SVG with no caption and no background
@@ -2063,7 +1934,7 @@ function render() {
   }
 
   // Toggle visual style (stroke vs fill card)
-  const isTransparent = !document.getElementById('bgTransparent')?.checked;
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
   preview.classList.toggle('card--stroke', isTransparent);
   preview.classList.toggle('card--fill',  !isTransparent);
 
@@ -2074,19 +1945,13 @@ function render() {
   // Build composed SVG
   const ecc = getECC();
     const svg = composeCardSvg({
-  cardWidth,
-  transparentBg: isTransparent,
-
-  // gradient pieces
-  bgTopColor:     colorHex('bgTopColor',    '#FFFFFF') || '#FFFFFF',
-  bgBottomColor:  colorHex('bgBottomColor', '#FFFFFF') || '#FFFFFF',
-  bgTopAlpha:     Math.max(0, Math.min(100, parseFloat(document.getElementById('bgTopAlpha')?.value || '100'))),
-  bgBottomAlpha:  Math.max(0, Math.min(100, parseFloat(document.getElementById('bgBottomAlpha')?.value || '100'))),
-
-  captionHeadline: showCap ? headline : '',
-  captionBody:     showCap ? body : '',
-  captionColor:    colorHex('captionColor', '#000000'),
-  ecc,
+    cardWidth,
+    transparentBg: isTransparent,
+    bgColor:        colorHex('bgColor', '#FFFFFF'),
+    captionHeadline: showCap ? headline : '',
+    captionBody:     showCap ? body : '',
+    captionColor:    colorHex('captionColor', '#000000'),
+    ecc,
 
     // look controls
     modulesShape:   document.getElementById('moduleShape')?.value || 'Square',
@@ -2166,40 +2031,18 @@ function refreshModulesMode(){
 
 function updatePreviewBackground() {
   const card = document.getElementById('qrPreview');
-  if (!card) return;
+  const col  = document.getElementById('bgColor')?.value || '#FFFFFF';
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
 
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = background ON
-
-  // Read knobs (use existing ids; harmless if missing)
-  const topHex  = document.getElementById('bgTopHex')?.value
-               || document.getElementById('bgTopColor')?.value || '#FFFFFF';
-  const botHex  = document.getElementById('bgBottomHex')?.value
-               || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-  const topA    = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
-  const botA    = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
-
-  // Tiny local converter; no new globals
-  const hexToRgb = (h) => {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
-    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:255,g:255,b:255 };
-  };
-  const rgba = (hex, aPct) => {
-    const {r,g,b} = hexToRgb(hex);
-    const a = Math.max(0, Math.min(100, Number(aPct))) / 100;
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
-  };
-
-  // Construct the CSS gradient for the unified ::before
-  const grad = `linear-gradient(180deg, ${rgba(topHex, topA)} 0%, ${rgba(botHex, botA)} 100%)`;
-  card.style.setProperty('--bg-paint', grad);
-
-  // Optional soft shadow only for fill mode
-  card.style.setProperty('--bg-shadow', isTransparent ? 'none' : '0 14px 40px rgba(0,0,0,.35)');
-
-  // Maintain stroke/fill classes (used by CSS above)
-  card.classList.toggle('card--stroke', isTransparent);
-  card.classList.toggle('card--fill', !isTransparent);
+  if (isTransparent) {
+    card.classList.add('card--stroke');
+    card.classList.remove('card--fill');
+    card.style.removeProperty('--frame-color');
+  } else {
+    card.classList.add('card--fill');
+    card.classList.remove('card--stroke');
+    card.style.setProperty('--frame-color', col);
+  }
 }
 
 // ----- Background gating (transparent toggle) -----
@@ -2211,22 +2054,11 @@ function refreshBackground() {
                || document.getElementById('bgHex')
                || document.getElementById('bghex');
 
-  const isTransparent = !tgl?.checked;
+  const isTransparent = !!tgl?.checked;
 
   // 1) Disable inputs
-  // legacy single-field (safe no-ops if missing)
-if (hex)    hex.disabled    = isTransparent;
-if (swatch) swatch.disabled = isTransparent;
-
-// new gradient fields
-const hexes   = [...document.querySelectorAll('#bgTopHex,#bgBottomHex')];
-const swatchs = [...document.querySelectorAll('#bgTopColor,#bgBottomColor')];
-const sliders = [...document.querySelectorAll('#bgTopAlpha,#bgBottomAlpha')];
-[...hexes, ...swatchs, ...sliders].forEach(el => { if (el) el.disabled = isTransparent; });
-
-// mute the two gradient rows visually
-document.querySelectorAll('#bgTopHex,#bgBottomHex')
-  .forEach(el => el.closest('label')?.classList.toggle('field-muted', isTransparent));
+  if (hex)    hex.disabled    = isTransparent;
+  if (swatch) swatch.disabled = isTransparent;
 
   // 2) Find the row that contains BOTH the color controls and the checkbox
   let row = swatch?.parentElement || hex?.parentElement || null;
@@ -2300,14 +2132,14 @@ function applyPhoneBackgroundForExport(svgEl) {
   const card = document.getElementById('qrPreview');
   const cs   = getComputedStyle(card);
 
-  const isTransparent = !document.getElementById('bgTransparent')?.checked;
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
   const fillColor     = (cs.getPropertyValue('--frame-color') || '').trim() || '#FFFFFF';
   const radius        = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0;
 
   // Clean any previous rect we might have added (in case of repeated exports)
   svgEl.querySelector('[data-export-bg]')?.remove();
 
-  return; // background now handled in PNG export; keep SVG transparent
+  if (isTransparent) return; // transparent preview => transparent export
 
   // Size from viewBox (fallback to DOM size if needed)
   const vb = (svgEl.getAttribute('viewBox') || `0 0 ${svgEl.clientWidth} ${svgEl.clientHeight}`)
@@ -2339,6 +2171,7 @@ function downloadSvg(filename = 'qr.svg') {
   if (!src) return;
 
   const svg = src.cloneNode(true);       // don’t touch the live preview
+  applyPhoneBackgroundForExport(svg);    // add background if needed
 
   const xml = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
@@ -2373,52 +2206,6 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
   canvas.width = Math.round(w * scale);
   canvas.height = Math.round(h * scale);
   const ctx = canvas.getContext('2d');
-
-  // Match preview background (gradient vs transparent) before drawing SVG
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = background ON (fill)
-
-  if (!isTransparent) {
-    // Read the same knobs used by updatePreviewBackground()
-    const topHex = document.getElementById('bgTopHex')?.value
-                || document.getElementById('bgTopColor')?.value || '#FFFFFF';
-    const botHex = document.getElementById('bgBottomHex')?.value
-                || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-    const topA   = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
-    const botA   = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
-
-    const hexToRgb = (h) => {
-      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
-      if (!m) return { r: 255, g: 255, b: 255 };
-      return {
-        r: parseInt(m[1], 16),
-        g: parseInt(m[2], 16),
-        b: parseInt(m[3], 16),
-      };
-    };
-
-    const rgba = (hex, pct) => {
-      const { r, g, b } = hexToRgb(hex);
-      const a = Math.max(0, Math.min(100, Number(pct))) / 100;
-      return `rgba(${r}, ${g}, ${b}, ${a})`;
-    };
-
-    // Vertical gradient, 0% → 100% height, same as CSS 180deg
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, rgba(topHex, topA));
-    grad.addColorStop(1, rgba(botHex, botA));
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  // Ensure custom fonts are ready before rasterizing the SVG
-  if (document.fonts && document.fonts.ready) {
-    try {
-      await document.fonts.ready;
-    } catch (_) {
-      // non-fatal; fall back to whatever is loaded
-    }
-  }
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   URL.revokeObjectURL(url);

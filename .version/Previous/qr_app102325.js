@@ -1,35 +1,42 @@
 "use strict";
 // This file runs in the browser.  No <script> or HTML tags belong here.
 
-(function loadQRCodeOnce() {
+(function loadQRCodeOnce(){
   if (window.QRCode && window.QRCode.CorrectLevel) return; // already loaded
 
-  function use(url, onload) {
+  function use(url, onload){
     var s = document.createElement('script');
     s.src = url;
     s.async = true;
     s.onload = onload;
-    s.onerror = function () {
-      // If the first URL fails (your preferred host), fall back to cdnjs
+    s.onerror = function(){
       if (!/cdnjs/.test(url)) {
         use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', onload);
       } else {
-        console.error('Failed to load QRCode library from', url);
+        console.error('Failed to load QRCode library from both sources.');
       }
     };
     document.head.appendChild(s);
   }
 
-  // TODO: if you have a preferred primary URL, call use('<your primary URL>', function(){ ... });
-  // For now, just load from cdnjs directly:
-  use('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js', function () {
-    // QRCode is now available as window.QRCode
-  });
+  // try local first, then CDN
+  use('vendor/qrcode.min.js', function () {
+  if (typeof window.render === 'function') requestAnimationFrame(window.render);
+});
+
 })();
 
 // --- Dark/Light toggle + persistence ---
 const root   = document.documentElement;
 const toggle = document.getElementById('themeToggle');
+
+/*// --- Initialize theme from saved or system preference ---
+(function initTheme() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') setTheme(true);
+  else if (saved === 'light') setTheme(false);
+  else setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+})()*/
 
 function setTheme(mode) {
   const r = document.documentElement;
@@ -40,12 +47,8 @@ function setTheme(mode) {
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }
 
-// Allow any existing button to act as the theme toggle
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-theme-toggle], .js-theme-toggle');
-  if (!btn) return;
-  e.preventDefault();
-  setTheme(!document.documentElement.classList.contains('dark')); // uses established logic
+toggle && toggle.addEventListener('click', () => {
+  setTheme(!root.classList.contains('dark'));
 });
 
 const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -56,238 +59,6 @@ mq.addEventListener?.('change', (e) => {
   // --- Footer year ---
   const yearEl = document.getElementById('year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
-
-  /* === ECC (add-only, session-persistent) ========================== */
-const ECC_KEY = 'okqral_ecc';
-const ECC_DEFAULT = 'M';
-
-function getECC(){
-  const v = sessionStorage.getItem(ECC_KEY);
-  return /^[LMQH]$/.test(v) ? v : ECC_DEFAULT;
-}
-
-function setECC(val, { trigger = true } = {}){
-  const v = (val || '').toUpperCase();
-  if (!/^[LMQH]$/.test(v)) return;
-  sessionStorage.setItem(ECC_KEY, v);
-
-  // Reflect to pill buttons
-  const pill = document.getElementById('eccPill');
-  pill?.querySelectorAll('.ecc-btn').forEach(b => {
-    b.setAttribute('aria-pressed', b.dataset.ecc === v ? 'true' : 'false');
-  });
-
-  // Reflect to any select#ecc present (top-bar or hidden)
-  const sel = document.getElementById('ecc');
-  if (sel && sel.value !== v){
-    sel.value = v;
-    if (trigger) sel.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
-  // Live re-render (non-invasive)
-  if (typeof render === 'function') render();
-}
-
-function wireECCPill(){
-  const pill = document.getElementById('eccPill');
-  if (!pill || wireECCPill._done) return;
-  pill.querySelectorAll('.ecc-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation(); // keep header toggle from swallowing clicks
-      setECC(btn.dataset.ecc);
-    }, { passive: false });
-  });
-  setECC(getECC(), { trigger: false });
-  wireECCPill._done = true;
-}
-
-// Keep legacy/top-bar select alive and in sync (add-only)
-function wireECCLegacySelect(){
-  const sel = document.getElementById('ecc');
-  if (!sel || wireECCLegacySelect._done) return;
-
-  sel.addEventListener('change', () => {
-    // Sync from select → pill (no re-emit)
-    setECC(sel.value, { trigger: false });
-  });
-
-  // Ensure initial mutual sync
-  setECC(sel.value || getECC(), { trigger: false });
-  wireECCLegacySelect._done = true;
-}
-/* === END ECC ===================================================== */
-
-/* === Preview Font (session-persistent) ============================ */
-const FONT_KEY     = 'okqral_font';
-// Store/select by base family name so it matches <option> values.
-const FONT_DEFAULT = 'Work Sans';
-
-function normalizeFont(val) {
-  if (!val) return FONT_DEFAULT;
-
-  let v = String(val).trim();
-  if (!v) return FONT_DEFAULT;
-
-  // Strip outer quotes if present
-  if ((v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))) {
-    v = v.slice(1, -1).trim();
-  }
-
-  // If it's a stack, only keep the first family as our key
-  const first = v.split(',')[0].trim();
-  return first || FONT_DEFAULT;
-}
-
-// === Utility: Font helpers ===
-function getPreviewFont() {
-  const host = document.getElementById('qrPreview');
-  return getComputedStyle(host || document.body).fontFamily;
-}
-
-function getFont() {
-  const stored = sessionStorage.getItem(FONT_KEY);
-  return normalizeFont(stored || FONT_DEFAULT);
-}
-
-function setFont(val) {
-  const base = normalizeFont(val);
-  sessionStorage.setItem(FONT_KEY, base);
-
-  const sel = document.getElementById('fontFamily');
-  if (sel) {
-    sel.value = base;            // this now matches <option> values
-    sel.style.fontFamily = base;
-  }
-
-  const preview = document.getElementById('qrPreview');
-  if (preview) {
-    preview.style.fontFamily = base;
-  }
-
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => typeof render === 'function' && render());
-  } else if (typeof render === 'function') {
-    render();
-  }
-}
-
-function wireFontSelect(){
-  const sel = document.getElementById('fontFamily');
-  if (!sel || wireFontSelect._done) return;
-
-  // Make each option preview in its own face
-  Array.from(sel.options).forEach(opt => {
-    // each <option> has the full stack as its value
-    opt.style.fontFamily = opt.value;
-    opt.style.fontWeight = '600'; // keeps visual parity with pills
-  });
-
-  // When the user changes the selection, reflect everywhere
-  sel.addEventListener('change', () => {
-    setFont(sel.value);             // persists + updates preview + value
-    sel.style.fontFamily = sel.value; // paint the button in that face
-  });
-
-  // Initialize from session or default and paint the control
-    const initial = getFont();
-  setFont(initial); // setFont will sync select + preview
-
-  wireFontSelect._done = true;
-}
-
-    document.addEventListener('DOMContentLoaded', wireFontSelect);
-
-    // === Caption placeholders + body auto-size =============================
-    function wireCaptionInputs(){
-      const head = document.getElementById('campaign');
-      const body = document.getElementById('captionBody');
-      const HEAD_PH = 'Headline';
-      const BODY_PH = 'Body (optional)';
-
-      function syncHead(){
-        if (!head) return;
-        if (head.value.trim() === '') head.placeholder = HEAD_PH;
-      }
-
-      function syncBody(){
-        if (!body) return;
-        if (body.value.trim() === '') body.placeholder = BODY_PH;
-
-        // rows: 1 by default; grow to 2 only when a second line exists
-        const lines = body.value.split('\n').length;
-        body.rows = Math.min(2, Math.max(1, lines));
-      }
-
-      head && head.addEventListener('input', syncHead);
-      body && body.addEventListener('input', syncBody);
-
-      // initialize on load
-      syncHead();
-      syncBody();
-    }
-
-    // run after DOM loads
-    document.addEventListener('DOMContentLoaded', wireCaptionInputs);
-
-    /* === Section color themes (Caption / Design / Mechanicals / Finish) === */
-    /* Uses body.theme--* classes defined in theme.css; no HTML changes needed. */
-    function applySectionTheme(step) {
-      const body = document.body;
-      if (!body) return;
-
-      const themeClasses = [
-        'theme--caption',
-        'theme--design',
-        'theme--mechanical',
-        'theme--finish'
-      ];
-
-      body.classList.remove(...themeClasses);
-
-      switch (step) {
-        case 'caption':
-          body.classList.add('theme--caption');
-          break;
-        case 'design':
-          body.classList.add('theme--design');
-          break;
-        case 'mechanicals':
-          body.classList.add('theme--mechanical');
-          break;
-        case 'finish':
-          body.classList.add('theme--finish');
-          break;
-        default:
-          // Fallback: rely on base tokens; no extra class.
-          break;
-      }
-    }
-
-    function wireSectionThemes() {
-      if (wireSectionThemes._done) return;
-
-      const cards = document.querySelectorAll('.step-card[data-step]');
-      if (!cards.length) return;
-
-      cards.forEach(card => {
-        const step = card.getAttribute('data-step');
-        const header = card.querySelector('.step-header');
-        if (!step || !header) return;
-
-        // On header click, adopt that section's theme.
-        header.addEventListener('click', () => applySectionTheme(step), { passive: true });
-      });
-
-      // Initial theme: use currently open step if present; otherwise Caption.
-      const open = document.querySelector('.step-card.is-open[data-step]');
-      applySectionTheme(open ? open.getAttribute('data-step') : 'caption');
-
-      wireSectionThemes._done = true;
-    }
-
-    document.addEventListener('DOMContentLoaded', wireSectionThemes);
     
     // -------- Emoji picker (catalog + search) --------
     const EMOJI_BIG = ["😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","🙂","🙃","☺️","😋","😌","😍","🥰","😘","😗","😙","😚","😜","🤪","😝","😛","🤑","🤗","🤭","🤫","🤔","🤐","🤨","😐","😑","😶","😶‍🌫️","😏","😒","🙄","😬","🤥","😴","😪","😮‍💨","😌","😮","😯","😲","😳","🥵","🥶","😱","😨","😰","😥","😢","😭","😤","😡","😠","🤬","🤯","😷","🤒","🤕","🤢","🤮","🤧","🥴","😵","😵‍💫","🤠","🥳","😎","🤓","🧐","😕","🫤","😟","🙁","☹️","🤷","🤷‍♂️","🤷‍♀️","💪","👋","🤝","👍","👎","👏","🙌","👐","🤲","🤟","✌️","🤘","👌","🤌","🤏","👈","👉","☝️","👆","👇","✋","🖐️","🖖","✊","👊","💋","❤️","🩷","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔","❤️‍🔥","❤️‍🩹","💕","💞","💓","💗","💖","💘","💝","💟","🌈","🏳️‍🌈","🏳️‍⚧️","⭐️","✨","🔥","⚡️","💥","🌟","☀️","🌙","🪐","🌍","🌎","🌏","🌊","⛰️","🏙️","🗽","🚗","✈️","🚀","⌚️","📱","💻","🖥️","🖨️","🎧","🎤","🎬","📷","📸","📝","📚","🔖","📎","🔬","🔧","⚙️","🍎","🍉","🍇","🍓","🍑","🍍","🥑","🌮","🍣","🍰","🍫","🍩","🍿","🍺","🍷","🍸","🎉","🎊","🎈","🎮","🎯","🏆","🏵️","✊🏿","✊🏾","✊🏽","✊🏼","✊🏻","👍🏿","👍🏾","👍🏽","👍🏼","👍🏻","👋🏿","👋🏾","👋🏽","👋🏼","👋🏻","🏁","🚩","🏳️","🏴","🏳️‍🌈","🏳️‍⚧️","🇺🇸","🇨🇦","🇬🇧","🇫🇷","🇩🇪","🇮🇹","🇪🇸","🇧🇷","🇯🇵","🇰🇷","🇨🇳","🇮🇳","🇿🇦"];
@@ -296,32 +67,23 @@ function wireFontSelect(){
     const emojiSearch= document.getElementById('emojiSearch');
     const emojiClose = document.getElementById('emojiClose');
     window.emojiTarget = null;
-    function openEmoji(targetId){
-      window.emojiTarget = document.getElementById(targetId);
-      emojiSearch.value = '';
-      renderEmojiGrid('');
-      emojiModal.classList.remove('hidden');
-      document.documentElement.classList.add('emoji-open');   // ⬅️ disable phone taps
-      emojiSearch.focus();
-    }
+    function openEmoji(targetId){ window.emojiTarget = document.getElementById(targetId); emojiSearch.value=''; renderEmojiGrid(''); emojiModal.classList.remove('hidden'); emojiSearch.focus(); }
     
     function closeEmoji(){
-      emojiModal.classList.add('hidden');
-      document.documentElement.classList.remove('emoji-open'); // ⬅️ re-enable phone taps
-      window.emojiTarget = null;
+    window.emojiModal.classList.add('hidden');
+    window.emojiTarget = null;
 
   // force a fresh preview on close as a safety net
   if (typeof render === 'function') render();
 }
 window.closeEmoji = closeEmoji;
-
     function renderEmojiGrid(q){ const norm=q.trim().toLowerCase(); emojiGrid.innerHTML=''; EMOJI_BIG.filter(e => !norm || e.toLowerCase().includes(norm)).forEach(e=>{ const b=document.createElement('button'); b.type='button'; b.className='h-9 text-lg rounded-md border hover:bg-neutral-50'; b.textContent=e; b.addEventListener('click', ()=>{
   if (window.emojiTarget) {
     window.emojiTarget.value = e;
     // fire 'input' so live preview updates immediately
     window.emojiTarget.dispatchEvent(new Event('input', { bubbles:true }));
   }
-  // Do NOT close the emoji modal here; user decides when to close.
+  closeEmoji();
 });
 
 emojiGrid.appendChild(b); }); }
@@ -329,7 +91,6 @@ emojiGrid.appendChild(b); }); }
     emojiSearch.addEventListener('input', ()=> renderEmojiGrid(emojiSearch.value));
     emojiClose.addEventListener('click', closeEmoji);
     emojiModal.addEventListener('click', (e)=>{ if(e.target===emojiModal) closeEmoji(); });
-    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && !emojiModal.classList.contains('hidden')) closeEmoji(); });
 
     // -------- Scale clickers --------
     function clamp(val,min,max){ return Math.min(max,Math.max(min,val)); }
@@ -360,7 +121,7 @@ emojiGrid.appendChild(b); }); }
   // Fallback to a baked-in copy (keeps UI working if fetch fails)
   manifest = {
     types: {
-      "URL": ["urlData","utmSource","utmMedium","utmCampaign"],
+      "URL": ["urlData"],
       "Payment": ["payMode","payUser","payLink","payAmount","payNote"],
       "WiFi": ["wifiSsid","wifiPwd","wifiSec","wifiHidden"],
       "Contact": [
@@ -374,11 +135,9 @@ emojiGrid.appendChild(b); }); }
       "Map": ["mapQuery","mapLat","mapLng","mapProvider"]
     },
 
+    // ← THIS is the piece that makes buildField() happy
     fields: {
       urlData:    { type:'url',   label:'URL', placeholder:'https://example.org' },
-      utmSource:   { type:'text', label:'UTM Source',   placeholder:'site, newsletter, etc.' },
-      utmMedium:   { type:'text', label:'UTM Medium',   placeholder:'qr, social, cpc…' },
-      utmCampaign: { type:'text', label:'UTM Campaign', placeholder:'campaign-name' },
 
       payMode:    { type:'select',label:'Payment Type',
                     options:['Venmo','Cash App','PayPal.me','Generic Link','Stripe Payment Link'] },
@@ -426,113 +185,14 @@ emojiGrid.appendChild(b); }); }
 
       mapQuery:   { type:'text',  label:'Search query', placeholder:'Statue of Liberty' },
       mapLat:     { type:'text',  label:'Latitude', placeholder:'40.6892' },
-            mapLng:    { type:'text',  label:'Longitude', placeholder:'-74.0445' },
+      mapLng:     { type:'text',  label:'Longitude', placeholder:'-74.0445' },
       mapProvider:{ type:'select',label:'Provider', options:['google','geo'] }
-    },
-
-    // WELCOME always exists offline
-    presets: {
-      "WELCOME": [
-        {
-          "name": "Welcome",
-          "fontFamily": "Inter",
-
-          "captionHeadline": "WELCOME",
-          "captionBody": "",
-
-          "captionColor": "#496039",
-          "bodyColor": "#444B55",
-
-          "eyeRingColor": "#283F19",
-          "eyeCenterColor": "#A06B22",
-
-          "bgTopColor":    "#EDEDED",
-          "bgTopAlpha":     100,
-          "bgBottomColor": "#EDEDED",
-          "bgBottomAlpha":  100,
-          "bgTransparent": true,
-
-          "moduleShape": "Rounded",
-          "eyeRingShape": "Rounded",
-          "eyeCenterShape": "Circle",
-
-          "modulesMode": "Emoji",
-          "modulesEmoji": "🟫",
-          "modulesScale": 0.9,
-
-          "centerMode": "Emoji",
-          "centerEmoji": "🐿️",
-          "centerScale": 1.5
-        }
-      ]
     }
   };
 }
 
 // after manifest = ... is set
 window.manifest = manifest;
-
-// --- BACKGROUND GRADIENT + STROKE HANDLERS ---
-// Helpers for converting and painting background
-function _hexToRGBA(hex, a = 1) {
-  const h = (hex || '#ffffff').replace('#', '').trim();
-  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-function _bgGradientFromKnobs() {
-  const top = document.getElementById('bgTopColor')?.value || '#FFFFFF';
-  const bot = document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-  const ta = (+document.getElementById('bgTopAlpha')?.value || 100) / 100;
-  const ba = (+document.getElementById('bgBottomAlpha')?.value || 100) / 100;
-  return `linear-gradient(180deg, ${_hexToRGBA(top, ta)}, ${_hexToRGBA(bot, ba)})`;
-}
-
-window.refreshBackground = function refreshBackground () {
-  const card = document.getElementById('qrPreview');
-  if (!card) return;
-
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = Background ON
-
-  // legacy single-field (no-ops if missing)
-  const swatch = document.getElementById('bgColor');
-  const hex    = document.getElementById('bgColorHex') ||
-                 document.getElementById('bgHex')     ||
-                 document.getElementById('bghex');
-
-  if (hex)    hex.disabled    = isTransparent;
-  if (swatch) swatch.disabled = isTransparent;
-
-  // gradient fields
-  const hexes   = [...document.querySelectorAll('#bgTopHex,#bgBottomHex')];
-  const swatchs = [...document.querySelectorAll('#bgTopColor,#bgBottomColor')];
-  const sliders = [...document.querySelectorAll('#bgTopAlpha,#bgBottomAlpha')];
-  [...hexes, ...swatchs, ...sliders].forEach(el => { if (el) el.disabled = isTransparent; });
-
-  // class gating (stroke vs fill)
-  card.classList.toggle('card--stroke', isTransparent);
-  card.classList.toggle('card--fill', !isTransparent);
-
-  // paint the CSS gradient var used by ::before
-  updatePreviewBackground();
-};
-
-// Live re-paint when user moves any background knob
-['bgTransparent','bgTopColor','bgBottomColor','bgTopHex','bgBottomHex','bgTopAlpha','bgBottomAlpha'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('input', () => {
-    window.refreshBackground();
-    if (typeof window.render === 'function') requestAnimationFrame(window.render);
-  });
-});
-
-// Default: Background ON at first paint
-document.addEventListener('DOMContentLoaded', () => {
-  // Respect whatever the preset (or saved UI) already set.
-  if (typeof window.refreshBackground === 'function') window.refreshBackground();
-});
 
 // optional helpers (put them right here too)
 window.getTypeFields = (t) => {
@@ -609,23 +269,6 @@ window.getPresets = (t) => {
   console.warn('[qr] Unknown type for manifest:', type);
 }
 
-// =====================================================
-//  Default ECC button: preselect "M" on first load
-// =====================================================
-document.addEventListener('DOMContentLoaded', function setDefaultECC() {
-  const eccBtns = document.querySelectorAll('.ecc-btn');
-  if (!eccBtns.length) return;
-
-  eccBtns.forEach(btn => {
-    const isDefault = btn.dataset.ecc === 'M';
-    btn.classList.toggle('active', isDefault);
-    btn.setAttribute('aria-pressed', isDefault ? 'true' : 'false');
-  });
-
-  // Global knob used by your QR generation logic
-  window.currentECC = 'M';
-});
-
     const frag = document.createDocumentFragment();
 
     // Simple heuristic grouping for prettier layout
@@ -649,6 +292,12 @@ const presetsByType = manifest.presets || {};
 const currentPresetIdx = new Map();
 
 
+
+function getPresets(type) {
+  const list = presetsByType[type];
+  return Array.isArray(list) ? list : [];
+}
+
 function setValAndFire(id, value) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -669,7 +318,6 @@ function applyPreset(type, index = 0) {
   const idx = ((index % list.length) + list.length) % list.length;
   currentPresetIdx.set(type, idx);
   const p = list[idx];
-    if (p.fontFamily) setFont(p.fontFamily);
 
   // ✅ Always load caption from the selected preset
   setCaptionFromPreset(p, type);
@@ -686,36 +334,14 @@ function setPlaceholder(id, text) {
 }  
   
   // Map preset keys → control IDs (only set what’s present)
+  if ('campaign' in p)       setPlaceholder('campaign', p.campaign);
   if (p.captionColor)        setValAndFire('captionColor', p.captionColor);
   if (p.bodyColor)           setValAndFire('bodyColor', p.bodyColor);
   if (p.eyeRingColor)        setValAndFire('eyeRingColor', p.eyeRingColor);
-  if (p.eyeCenterColor) setValAndFire('eyeCenterColor', p.eyeCenterColor);
-
-  // Prefer new gradient knobs if present
-  if (p.bgTopColor)    setValAndFire('bgTopHex',    p.bgTopColor);
-  if (p.bgBottomColor) setValAndFire('bgBottomHex', p.bgBottomColor);
-  if (p.bgTopAlpha != null)    setValAndFire('bgTopAlpha',    p.bgTopAlpha);
-  if (p.bgBottomAlpha != null) setValAndFire('bgBottomAlpha', p.bgBottomAlpha);
-
-  // Back-compat: single bgColor → mirror to both ends
-  if (p.bgColor && !p.bgTopColor && !p.bgBottomColor) {
-    const c = p.bgColor;
-    const topCol = document.getElementById('bgTopColor');
-    const botCol = document.getElementById('bgBottomColor');
-    const topHex = document.getElementById('bgTopHex');
-    const botHex = document.getElementById('bgBottomHex');
-    if (topCol) topCol.value = c;
-    if (botCol) botCol.value = c;
-    if (topHex) topHex.value = c;
-    if (botHex) botHex.value = c;
-    const ta = document.getElementById('bgTopAlpha');
-    const ba = document.getElementById('bgBottomAlpha');
-    if (ta) { ta.value = 100; ta.dispatchEvent(new Event('input')); }
-    if (ba) { ba.value = 100; ba.dispatchEvent(new Event('input')); }
-}
-
-if (typeof p.bgTransparent === 'boolean')
-  setValAndFire('bgTransparent', !p.bgTransparent);
+  if (p.eyeCenterColor)      setValAndFire('eyeCenterColor', p.eyeCenterColor);
+  if (p.bgColor)             setValAndFire('bgColor', p.bgColor);
+  if (typeof p.bgTransparent === 'boolean')
+                             setValAndFire('bgTransparent', p.bgTransparent);
 
   if (p.moduleShape)         setValAndFire('moduleShape', p.moduleShape);
   if (p.eyeRingShape)        setValAndFire('eyeRingShape', p.eyeRingShape);
@@ -736,52 +362,30 @@ if (typeof p.bgTransparent === 'boolean')
 }
 
 function setCaptionFromPreset(preset, typeName) {
-  const head = document.getElementById('campaign');
-  const body = document.getElementById('captionBody');
+  const el = document.getElementById('campaign');
+  if (!el) return;
 
-  // headline text from the preset (fall back to type name)
-  const headText =
+  const text =
     preset?.campaign ??
     preset?.caption ??
     preset?.label ??
     preset?.name ??
     String(typeName || '');
 
-  if (head) {
-    head.value = headText;                       // 🔒 overwrite on subtype change
-    head.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  // optional body text from the preset (if provided), otherwise clear
-  if (body) {
-    const bodyText =
-      preset?.body ??
-      preset?.captionBody ??
-      ''; // empty → placeholder shows, QR preview stays blank
-
-    body.value = bodyText;
-    body.dispatchEvent(new Event('input', { bubbles: true }));
-  }
+  el.value = text;                               // 🔒 overwrite on subtype change
+  el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 // After the existing type-change listener (form rebuild), apply last/first preset
 typeSel.addEventListener('change', () => {
   const t = typeSel.value;
-
-  // 1) rebuild the form for this type
-  renderTypeForm(t);
-
-  // 2) preset index bookkeeping
   if (!currentPresetIdx.has(t)) currentPresetIdx.set(t, 0);
-
-  // 3) apply the preset now that controls exist
   applyPreset(t, currentPresetIdx.get(t));
 
-  // 4) force caption from the active preset (or type name)
+  // 🔹 add this block inside the listener, right after applyPreset
   const list = getPresets(t);
   setCaptionFromPreset(list[currentPresetIdx.get(t)] || {}, t);
 
-  // 5) analytics
   sendEvent('type_change', currentUiState());
 });
 
@@ -809,6 +413,13 @@ function cyclePreset(dir) {
 
 prevBtn?.addEventListener('click', () => cyclePreset(-1));
 nextBtn?.addEventListener('click', () => cyclePreset(1));
+
+// Initial apply for the default type (after first renderTypeForm call)
+const initialType = typeSel?.value;
+if (initialType && getPresets(initialType).length) {
+  currentPresetIdx.set(initialType, 0);
+  applyPreset(initialType, 0);
+}
 
     // Payment: toggle user vs link by mode
     const payMode = document.getElementById('payMode');
@@ -849,51 +460,9 @@ nextBtn?.addEventListener('click', () => cyclePreset(1));
     
   }
 
-const t0 = typeSel?.value;
-if (t0 && getPresets(t0).length) {
-  currentPresetIdx.set(t0, 0);
-  applyPreset(t0, 0);
-  const list0 = getPresets(t0);
-  setCaptionFromPreset(list0[0] || {}, t0);
-}
-
-// =====================================================
-//  WELCOME PRESET: show default QR before any type chosen
-// =====================================================
-if (!typeSel.value && typeof getPresets === 'function') {
-  const welcomeList = getPresets('WELCOME') || [];
-  if (welcomeList.length) {
-    currentPresetIdx.set('WELCOME', 0);
-    applyPreset('WELCOME', 0);
-    setCaptionFromPreset(welcomeList[0] || {}, 'WELCOME');
-  } else {
-    // Synthesize a safe default so something renders
-    const topCol = document.getElementById('bgTopColor');
-    const botCol = document.getElementById('bgBottomColor');
-    const topHex = document.getElementById('bgTopHex');
-    const botHex = document.getElementById('bgBottomHex');
-    if (topCol) topCol.value = '#EDEDED';
-    if (botCol) botCol.value = '#EDEDED';
-    if (topHex) topHex.value = '#EDEDED';
-    if (botHex) botHex.value = '#EDEDED';
-    const ta = document.getElementById('bgTopAlpha');
-    const ba = document.getElementById('bgBottomAlpha');
-    if (ta) { ta.value = 100; ta.dispatchEvent(new Event('input')); }
-    if (ba) { ba.value = 100; ba.dispatchEvent(new Event('input')); }
-    const tcb = document.getElementById('bgTransparent');
-    if (tcb) { tcb.checked = true; tcb.dispatchEvent(new Event('change', { bubbles: true })); }
-    const head = document.getElementById('campaign');
-    const body = document.getElementById('captionBody');
-    if (head) { head.value = 'WELCOME'; head.dispatchEvent(new Event('input', { bubbles: true })); }
-    if (body) { body.value = '';       body.dispatchEvent(new Event('input', { bubbles: true })); }
-  }
-
-  if (typeof window.refreshBackground === 'function') {
-  window.refreshBackground();
-  }
-  if (typeof render === 'function') render();
-}
-
+  // Initial render + on change
+  renderTypeForm(typeSel.value);
+  typeSel.addEventListener('change', ()=> renderTypeForm(typeSel.value));
 })();
 
 (function () {
@@ -921,33 +490,8 @@ if (!typeSel.value && typeof getPresets === 'function') {
     const t = typeSel.value;
     switch(t){
       case "URL": {
-        const raw = val("urlData") || "https://example.org";
-
-        // read optional utm fields
-        const s = (val("utmSource")   || "").trim();
-        const m = (val("utmMedium")   || "").trim();
-        const c = (val("utmCampaign") || "").trim();
-
-        // If nothing extra was entered, return as-is
-        if (!s && !m && !c) return raw;
-
-        try {
-          // Robust path when raw is a valid absolute URL
-          const u = new URL(raw);
-          if (s) u.searchParams.set("utm_source",   s);
-          if (m) u.searchParams.set("utm_medium",   m);
-          if (c) u.searchParams.set("utm_campaign", c);
-          return u.toString();
-        } catch {
-          // Fallback for non-absolute or invalid URLs:
-          // append query the "old-fashioned" way without breaking existing params
-          const join = raw.includes("?") ? "&" : "?";
-          const parts = [];
-          if (s) parts.push(`utm_source=${encodeURIComponent(s)}`);
-          if (m) parts.push(`utm_medium=${encodeURIComponent(m)}`);
-          if (c) parts.push(`utm_campaign=${encodeURIComponent(c)}`);
-          return parts.length ? `${raw}${join}${parts.join("&")}` : raw;
-        }
+        const u = val("urlData") || "https://example.org";
+        return u;
       }
       case "Payment": {
         const mode = val("payMode");
@@ -1115,25 +659,14 @@ function layoutCaptionLines(ns, {
   startSize,
   minSize,
   maxLines = 2,
-  charBudget = 0,       // total characters across all lines
+  charBudget = 25,       // total characters across all lines
   twoLineTrigger = 14    // if > this, prefer wrapping first
 }) {
-  const raw = (text || '').replace(/\s+/g, ' ').trim();
-  const s   = charBudget > 0 ? raw.slice(0, charBudget) : raw;
+  const raw   = (text || '').replace(/\s+/g, ' ').trim();
+  // enforce the *total* char budget first so layout stays predictable
+  const s     = charBudget > 0 ? raw.slice(0, charBudget) : raw;
 
   const measure = (fs, str) => measureSvgText(ns, family, weight, fs, str);
-
-  /* === NEW: single-line fast path (no ellipses) ===================== */
-  if (maxLines === 1) {
-    for (let fs = startSize; fs >= Math.max(5, minSize); fs--) {
-      if (measure(fs, s) <= maxWidth) {
-        return { fontSize: fs, lines: [s] };
-      }
-    }
-    // If nothing fits wider than minSize, still return the full string at minSize.
-    return { fontSize: Math.max(5, minSize), lines: [s] };
-  }
-  /* ================================================================== */
 
   // Greedy wrap (<= maxLines) at a given font size
   function wrapAt(fs) {
@@ -1147,7 +680,7 @@ function layoutCaptionLines(ns, {
         line = test;
       } else {
         if (line) { lines.push(line); line = words[i]; }
-        else      { lines.push(words[i]); line = ''; }
+        else      { lines.push(words[i]); line = ''; } // single long “word”
       }
       if (lines.length === maxLines) {
         // shove the remainder into the last line and ellipsize if needed
@@ -1190,15 +723,11 @@ function layoutCaptionLines(ns, {
     }
   }
 
-  /* === NEW: final fallback without ellipses for single-line mode ===== */
-  // (We never get here when maxLines === 1 because of the early return above.)
+  // Final fallback at min size: single clipped line
   let clip = s;
   while (clip && measure(minSize, clip + '…') > maxWidth) clip = clip.slice(0, -1);
   return { fontSize: minSize, lines: [clip ? clip + '…' : ''] };
-  /* ================================================================== */
-}
-
-// Build an SVG element for the QR, including background, modules, and eyes
+}// Build an SVG element for the QR, including background, modules, and eyes
 function buildQrSvg({
   text, size, level,
   modulesShape, bodyColor,
@@ -1251,25 +780,17 @@ if (showCaption) {
     family: captionFontFamily,
     weight: "600",
     maxWidth,
-    maxLines: 1,
+    maxLines: 2,
     startSize,
-    minSize: Math.max(5, Math.round(size * 0.04)),
-    charBudget: 0,
-    twoLineTrigger: 999
+    minSize,
+    charBudget: 30,
+    twoLineTrigger: 14
   });
 
   capPadTop = Math.round(size * 0.18);
   capPadBot = Math.round(size * 0.08);
-  const blockH = Math.round(capLayout.fontSize * lineGap);
-
-  // vertically center the single line between QR bottom and preview bottom
-  const availableH = capPadTop + capPadBot + blockH;
-  const topOffset = (capPadTop + capPadBot - blockH) / 2;
-  capPadTop = topOffset;
-  capPadBot = topOffset;
-
-  totalH = size + availableH;
-
+  const blockH = Math.round(capLayout.fontSize * (capLayout.lines.length * lineGap));
+  totalH = size + capPadTop + blockH + capPadBot;
 }
 
 // Set canvas dimensions now that we know total height
@@ -1278,11 +799,12 @@ svg.setAttribute('height', totalH);
 svg.setAttribute('viewBox', `0 0 ${size} ${totalH}`);
 svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-// ----- Card geometry (used by QR/caption layout; no SVG bg fill here) -----
+// ----- Card background + decorative frame stroke -----
 const inset       = Math.round(size * 0.04);
 const strokeWidth = Math.max(1, Math.round(size * 0.02));
 
-let cornerRadius = Math.round(size * 0.07);
+// Derive corner radius from CSS so the SVG card matches the purple outline
+let cornerRadius = Math.round(size * 0.07); // fallback
 const host = document.getElementById('qrPreview');
 if (host) {
   const cs    = getComputedStyle(host);
@@ -1290,18 +812,31 @@ if (host) {
   const token = parseFloat(cs.getPropertyValue('--shape-corner-lg')) ||
                 parseFloat(cs.borderTopLeftRadius) || 0;
   if (w > 0 && token > 0) {
-    const scale = size / w;
+    const scale = size / w;                 // CSS px → SVG units
     cornerRadius = Math.round(token * scale);
   }
 }
+// HARD CLAMP so rx never exceeds half the drawable side
 const drawable = size - (inset + strokeWidth) * 2;
 cornerRadius   = Math.max(1, Math.min(cornerRadius, Math.floor(drawable / 2)));
 
+// If caption is ON => portrait (size × totalH); OFF => square (size × size)
 const cardX = inset;
 const cardY = inset;
 const cardW = size - inset * 2;
 const cardH = showCaption ? totalH : size;
-// ⤴️ No background rect. The card fill/stroke is owned by CSS ::before.
+// Filled background (skip if bare)
+if (!bare && !transparentBg) {
+   const bg = document.createElementNS(ns, 'rect');
+   bg.setAttribute('x', cardX);
+   bg.setAttribute('y', cardY);
+   bg.setAttribute('width',  cardW);
+   bg.setAttribute('height', cardH);
+   bg.setAttribute('rx', cornerRadius);
+   bg.setAttribute('ry', cornerRadius);
+   bg.setAttribute('fill', bgColor);
+   svg.appendChild(bg);
+}
 
 // Optional: a soft outer glow for the stroke
 function ensureGlowDef() {
@@ -1588,15 +1123,8 @@ svg.style.height = 'auto';
 function composeCardSvg({
   cardWidth,
   transparentBg,
-
-  // gradient inputs
-  bgTopColor,
-  bgBottomColor,
-  bgTopAlpha,    // 0–100
-  bgBottomAlpha, // 0–100
-
-  captionHeadline,
-  captionBody,
+  bgColor,
+  captionText,
   captionColor,
   ecc,
   // QR look:
@@ -1606,40 +1134,18 @@ function composeCardSvg({
   modulesMode, modulesScale, modulesEmoji,
   centerMode, centerScale, centerEmoji,
 }) {
-    const NS = "http://www.w3.org/2000/svg";
+  const NS = "http://www.w3.org/2000/svg";
 
-  // Normalize caption content (max: 1 headline + 2 body lines)
-  const headTextRaw = (captionHeadline || '').trim();
-  const bodyTextRaw = (captionBody || '').replace(/\r/g, '').trim();
-
-  const bodyParts = bodyTextRaw ? bodyTextRaw.split('\n') : [];
-  const bodyLine1 = (bodyParts[0] || '').trim();
-  const bodyLine2 = (bodyParts[1] || '').trim();
-
-  const hasHeadline   = !!headTextRaw;
-  const hasBody1      = !!bodyLine1;
-  const hasBody2      = !!bodyLine2;
-  const hasAnyBody    = hasBody1 || hasBody2;
-  const hasAnyCaption = hasHeadline || hasAnyBody;
-
-    // Geometry: card height depends on caption mode
-  let cardHeight;
-  if (!hasAnyCaption) {
-    // 1) QR only — perfect square
-    cardHeight = cardWidth;
-  } else {
-    // 2–4) Caption variants — shared wallet card (0.63 : 1 width : height)
-    cardHeight = Math.round(cardWidth / 0.63);
-  }
+  // Geometry constants (tweak safely)
+  const CARD_ASPECT = 1 / 1.1;                       // 1:1 portrait
+  const cardHeight  = Math.round(cardWidth / CARD_ASPECT);
 
   const OUTER_PAD   = Math.round(cardWidth * 0.06); // frame inset
+  const QR_FRACTION = 0.62;                         // ~25–35% smaller than full-width
   const CAP_SIDE    = Math.round(cardWidth * 0.08);
   const CAP_TOPPAD  = Math.round(cardWidth * 0.05);
   const CAP_BOTPAD  = Math.round(cardWidth * 0.06);
 
-      // Fixed QR scale across all caption states
-  const QR_FRACTION = 0.75;
-  
   // Corner radius: read from CSS token so it matches the purple outline
   let RADIUS = Math.round(cardWidth * 0.07); // fallback
   const host2 = document.getElementById('qrPreview');
@@ -1673,31 +1179,20 @@ function composeCardSvg({
   frame.setAttribute('height', String(cardHeight - OUTER_PAD*2));
   frame.setAttribute('rx', String(RADIUS));
   frame.setAttribute('ry', String(RADIUS));
-
-// The card paint is owned by CSS (#qrPreview::before).
-// Only add a frame rect when transparent mode is active.
-if (transparentBg) {
-  frame.setAttribute('fill', 'none');
+  if (!transparentBg) {
+    frame.setAttribute('fill', bgColor);
+  } else {
+    frame.setAttribute('fill', 'none');
+    // no inline stroke; CSS will style .qr-frame under .card--stroke
+  }
   svg.appendChild(frame);
-}
 
-const qrSize = Math.round(cardWidth * QR_FRACTION);
-const qrX = Math.round((cardWidth - qrSize) / 2);
+  // QR square placement (top-centered)
+  const qrSize = Math.round(cardWidth * QR_FRACTION);
+  const qrX = Math.round((cardWidth - qrSize) / 2);
+  const qrY = OUTER_PAD;
 
-// Equal top + side padding for wallet cards
-const PAD  = Math.round(cardWidth * 0.08);       
-const SIDE = Math.round((cardWidth - qrSize) / 2); // actual side padding from centering
-let qrY;
-
-if (!hasAnyCaption) {
-  // square mode — perfectly centered
-  qrY = Math.round((cardHeight - qrSize) / 2);
-} else {
-  // wallet modes — keep QR equidistant from top and sides (static)
-  qrY = SIDE;
-}
-
-// Build the *inner* QR SVG with no caption and no background
+  // Build the *inner* QR SVG with no caption and no background
   const innerQR = buildQrSvg({
     text: buildText(),
     size: qrSize,
@@ -1724,131 +1219,68 @@ if (!hasAnyCaption) {
   innerQR.setAttribute('height', String(qrSize));
   svg.appendChild(innerQR);
 
-  // Caption region (only if we actually have caption content)
-  if (!hasAnyCaption) {
-    return svg; // Mode 1 handled: QR-only card
-  }
+  // Caption region = everything under the QR down to the bottom inset
+  const capY0     = qrY + qrSize + CAP_TOPPAD;
+  const capX      = CAP_SIDE;
+  const capWidth  = cardWidth - CAP_SIDE*2;
+  const capMaxH   = (cardHeight - OUTER_PAD) - CAP_BOTPAD - capY0;
 
-  const capY0      = qrY + qrSize + CAP_TOPPAD;
-  const capWidth   = cardWidth - CAP_SIDE * 2;
-  const capMaxH    = (cardHeight - OUTER_PAD) - CAP_BOTPAD - capY0;
-  const centerX    = cardWidth / 2;
-  const fontFamily = getPreviewFont();
-  const lineGap    = 1.15;
+  // Fit up to two lines at the largest size that fits the width
+  const lineGap   = 1.12;
+  const startSize = Math.round(cardWidth * 0.16);
+  const minSize   = Math.round(cardWidth * 0.095);
 
-  // We build up to three segments: [headline], [body1], [body2]
-  const segments = [];
-  let totalH = 0;
+  const layout = layoutCaptionLines(NS, {
+    text: captionText || '',
+    family: getComputedStyle(document.body).fontFamily,
+    weight: '600',
+    maxWidth: capWidth,
+    maxLines: 2,
+    startSize,
+    minSize,
+    charBudget: 60,          // allow long captions
+    twoLineTrigger: 16
+  });
 
-  // Headline: single line, heavy
-  if (hasHeadline) {
-    const headLayout = layoutCaptionLines(NS, {
-      text: headTextRaw,
-      family: fontFamily,
-      weight: '700',
+  // If two lines overflow the available height, reduce one step
+  const neededH = layout.fontSize * (layout.lines.length * lineGap);
+  if (neededH > capMaxH && layout.fontSize > minSize) {
+    const layout2 = layoutCaptionLines(NS, {
+      text: captionText || '',
+      family: getComputedStyle(document.body).fontFamily,
+      weight: '600',
       maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(cardWidth * 0.16),
-      minSize: Math.max(5, Math.round(cardWidth * 0.08)),
-      charBudget: 20,
-      twoLineTrigger: 999
+      maxLines: 2,
+      startSize: layout.fontSize - 1,
+      minSize,
+      charBudget: 60,
+      twoLineTrigger: 16
     });
-    if (headLayout && headLayout.lines && headLayout.lines[0]) {
-      const size = headLayout.fontSize;
-      segments.push({
-        text: headLayout.lines[0],
-        size,
-        weight: '700',
-        gapBefore: 0
-      });
-      totalH += size;
-    }
+    layout.fontSize = layout2.fontSize;
+    layout.lines    = layout2.lines;
   }
 
-  // Body line 1: optional, its own sizing
-  if (hasBody1) {
-    const ref = segments.length
-      ? segments[0].size * 0.70
-      : Math.round(cardWidth * 0.09);
-    const body1 = layoutCaptionLines(NS, {
-      text: bodyLine1,
-      family: fontFamily,
-      weight: '400',
-      maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(ref),
-      minSize: Math.max(5, Math.round(cardWidth * 0.045)),
-      charBudget: 40,
-      twoLineTrigger: 999
+  // Draw caption lines, centered
+  if (layout.lines.length && layout.lines[0]) {
+    const firstBase = capY0 + layout.fontSize; // baseline of line 1
+    layout.lines.forEach((ln, i) => {
+      const t = document.createElementNS(NS, 'text');
+      t.setAttribute('x', String(cardWidth/2));
+      t.setAttribute('y', String(firstBase + i*layout.fontSize*lineGap));
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('dominant-baseline', 'alphabetic');
+      t.setAttribute('font-size', String(layout.fontSize));
+      t.setAttribute('font-weight', '600');
+      t.setAttribute('fill', captionColor || '#000');
+      t.setAttribute('font-family', getComputedStyle(document.body).fontFamily);
+      t.textContent = ln;
+      svg.appendChild(t);
     });
-    if (body1 && body1.lines && body1.lines[0]) {
-      const gap = segments.length ? segments[0].size * 0.40 : 0; // space below headline
-      const size = body1.fontSize;
-      segments.push({
-        text: body1.lines[0],
-        size,
-        weight: '400',
-        gapBefore: gap
-      });
-      totalH += gap + size;
-    }
-  }
-
-  // Body line 2: optional, scaled independently from line 1
-  if (hasBody2) {
-    const prevSize = segments.length
-      ? segments[segments.length - 1].size
-      : Math.round(cardWidth * 0.06);
-    const body2 = layoutCaptionLines(NS, {
-      text: bodyLine2,
-      family: fontFamily,
-      weight: '400',
-      maxWidth: capWidth,
-      maxLines: 1,
-      startSize: Math.round(prevSize * 0.95),
-      minSize: Math.max(5, Math.round(cardWidth * 0.045)),
-      charBudget: 40,
-      twoLineTrigger: 999
-    });
-    if (body2 && body2.lines && body2.lines[0]) {
-      const gap = Math.round(prevSize * 0.25); // subtle space after body1
-      const size = body2.fontSize;
-      segments.push({
-        text: body2.lines[0],
-        size,
-        weight: '400',
-        gapBefore: gap
-      });
-      totalH += gap + size;
-    }
-  }
-
-  if (!segments.length || capMaxH <= 0) {
-    return svg;
-  }
-
-  // Vertically center the entire text stack between QR and bottom inset
-  let y = capY0 + (capMaxH - totalH) / 2;
-
-  for (const seg of segments) {
-    if (seg.gapBefore) {
-      y += seg.gapBefore;
-    }
-    y += seg.size;
-    const t = document.createElementNS(NS, 'text');
-    t.setAttribute('x', String(centerX));
-    t.setAttribute('y', String(y));
-    t.setAttribute('text-anchor', 'middle');
-    t.setAttribute('font-size', String(seg.size));
-    t.setAttribute('font-weight', seg.weight);
-    t.setAttribute('fill', captionColor || '#000');
-    t.setAttribute('font-family', fontFamily);
-    t.textContent = seg.text;
-    svg.appendChild(t);
   }
 
   return svg;
 }
+
 // --- One-time wiring for Background controls ---
 let _bg_wired = false;
 function wireBackgroundBindingsOnce() {
@@ -1865,38 +1297,7 @@ function wireBackgroundBindingsOnce() {
 }
 
 let _right_wired = false;
-
-function applySectionThemeFromMode(mode) {
-  const body = document.body;
-  if (!body) return;
-
-  const classes = [
-    'theme--caption',
-    'theme--design',
-    'theme--mechanical',
-    'theme--finish'
-  ];
-  body.classList.remove(...classes);
-
-  switch (mode) {
-    case 'design':
-      body.classList.add('theme--design');
-      break;
-    case 'mechanicals':
-      body.classList.add('theme--mechanical');
-      break;
-    case 'finish':
-      body.classList.add('theme--finish');
-      break;
-    case 'caption':
-    default:
-      body.classList.add('theme--caption');
-      break;
-  }
-}
-
 function wireRightAccordionBehaviorOnce() {
-
   if (_right_wired) return;
 
   const right = document.getElementById('stepper');
@@ -1911,13 +1312,10 @@ function wireRightAccordionBehaviorOnce() {
   const mechanicalsBtn = mechanicalsCard?.querySelector('[data-step-toggle]');
   const finishBtn      = finishCard?.querySelector('[data-step-toggle]');
 
-    function setMode(mode) {
+  function setMode(mode) {
     right.classList.toggle('mech-active',   mode === 'mechanicals');
     right.classList.toggle('finish-active', mode === 'finish');
     if (mode === 'design') right.classList.remove('mech-active', 'finish-active');
-
-    // Sync global color theme with the active section
-    applySectionThemeFromMode(mode);
   }
 
   const isOpen = (card) => {
@@ -1942,29 +1340,21 @@ function boot() {
   // 1) Wire one-time bindings
   wireBackgroundBindingsOnce();
   wireRightAccordionBehaviorOnce();
-  wireECCPill();
-  
+
 // After your existing boot wiring:
 refreshModulesMode?.();   // enables Emoji + Scale when “Emoji” is selected
 refreshCenter?.();        // enables center Emoji + Scale when “Emoji” is selected
 refreshBackground?.();    // applies Transparent toggle to the preview frame
 
-requestAnimationFrame(() => {
-    if (typeof render === 'function') render();
-    document.documentElement.classList.add('ui-ready');
-    // ensure click-through state is correct once the phone is painted
-    if (typeof applyClickThroughForMobile === 'function') applyClickThroughForMobile();
-  });
-}
-
+document.getElementById('modulesMode')?.addEventListener('change', () => { refreshModulesMode?.(); render(); });
 document.getElementById('modulesMode')?.addEventListener('change', () => {
   sendEvent('modules_mode', currentUiState());
 });
-
+document.getElementById('centerMode')?.addEventListener('change',  () => { refreshCenter?.();     render(); });
 document.getElementById('centerMode')?.addEventListener('change', () => {
   sendEvent('center_mode', currentUiState());
 });
-
+document.getElementById('bgTransparent')?.addEventListener('change', () => { refreshBackground?.(); render(); });
 document.getElementById('bgTransparent')?.addEventListener('change', () => {
   const transparent = !!document.getElementById('bgTransparent')?.checked;
   sendEvent('bg_mode', { transparent, ...currentUiState() });
@@ -1988,53 +1378,14 @@ document.getElementById('bgColor')?.addEventListener('input', () => { refreshBac
   sendEvent('caption_toggle', { showCaption: show, ...currentUiState() });
 });
 
+}
+
 // Run after DOM is ready (once)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot, { once: true });
 } else {
   boot();
 }
-// --- Initial global gate: everything off until a QR Type is chosen ---
-(function gateUntilTypeChosen(){
-  const typeSel = document.getElementById('qrType');
-  const stepper = document.getElementById('stepper');
-
-  // All interactive controls outside the top bar that should start disabled:
-  const targets = () => [
-    ...stepper.querySelectorAll('input, select, textarea, button'),
-    ...document.querySelectorAll('.nav-arrow') // prev/next arrows by the preview
-  ];
-
-  function setDisabled(allOff){
-    // Visual mute for the whole right column (blocks clicks too via CSS)
-    stepper.classList.toggle('field-muted', allOff);
-    // Flip the actual disabled state on all form-ish controls
-    targets().forEach(el => { el.disabled = allOff; });
-  }
-
-  // 🔴 Add the start-here highlight on first load if empty
-  if (typeSel && !typeSel.value) typeSel.classList.add('start-here');
-
-  // If nothing picked, lock it down; otherwise, proceed normally
-  const hasType = !!typeSel?.value;
-  setDisabled(!hasType);
-  // Hide navigation arrows until a type is chosen
-  document.getElementById('prevSubtype')?.classList.toggle('hidden', !hasType);
-  document.getElementById('nextSubtype')?.classList.toggle('hidden', !hasType);
-
-  // First real action: selecting a type unlocks everything and wires design gates
-  typeSel?.addEventListener('change', () => {
-    typeSel.classList.remove('start-here'); // remove highlight once chosen
-    setDisabled(false);
-    document.getElementById('prevSubtype')?.classList.remove('hidden');
-    document.getElementById('nextSubtype')?.classList.remove('hidden');
-    // Hand off to your existing, granular “Design” section gating
-    if (typeof wireDesignGatesOnce === 'function') wireDesignGatesOnce();
-  }, { once: true, passive: true });
-
-  // If a type is already present (e.g., hot reload), ensure gates wire up
-  if (hasType && typeof wireDesignGatesOnce === 'function') wireDesignGatesOnce();
-})();
 
   // Toggle visual style on the preview card (for CSS glow/inset)
 function render() {
@@ -2042,28 +1393,17 @@ function render() {
   const mount   = document.getElementById('qrMount');
   if (!preview || !mount) return;
 
-    // Capture caption state early
-  const showCap = !!document.getElementById('showCaption')?.checked;
-
-  const headlineEl = document.getElementById('campaign');     // Headline
-  const bodyEl     = document.getElementById('captionBody');  // Body
-
-  const headline = (headlineEl?.value || '').trim().slice(0, 20);
-
-  const body = (bodyEl?.value || '').trim().slice(0, 60);     // body budget
-
-    // Caption mode: drives stage ratio (square vs wallet)
-  const hasHeadline = showCap && !!headline;
-  const hasBody     = showCap && !!body;
-  const hasAnyCaption = hasHeadline || hasBody;
-
-  const stage = preview.closest('.preview-stage');
-  if (stage) {
-    stage.classList.toggle('preview--square', !hasAnyCaption);
-  }
+  // Capture caption state early
+const showCap = !!document.getElementById('showCaption')?.checked;
+const captionEl = document.getElementById('campaign');
+const caption = (
+  (captionEl?.value && captionEl.value.trim()) ||
+  captionEl?.getAttribute('placeholder') ||
+  ''
+);
 
   // Toggle visual style (stroke vs fill card)
-  const isTransparent = !document.getElementById('bgTransparent')?.checked;
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
   preview.classList.toggle('card--stroke', isTransparent);
   preview.classList.toggle('card--fill',  !isTransparent);
 
@@ -2072,21 +1412,14 @@ function render() {
   const cardWidth = Math.max(rect.width || preview.clientWidth || 320, 320);
 
   // Build composed SVG
-  const ecc = getECC();
-    const svg = composeCardSvg({
-  cardWidth,
-  transparentBg: isTransparent,
-
-  // gradient pieces
-  bgTopColor:     colorHex('bgTopColor',    '#FFFFFF') || '#FFFFFF',
-  bgBottomColor:  colorHex('bgBottomColor', '#FFFFFF') || '#FFFFFF',
-  bgTopAlpha:     Math.max(0, Math.min(100, parseFloat(document.getElementById('bgTopAlpha')?.value || '100'))),
-  bgBottomAlpha:  Math.max(0, Math.min(100, parseFloat(document.getElementById('bgBottomAlpha')?.value || '100'))),
-
-  captionHeadline: showCap ? headline : '',
-  captionBody:     showCap ? body : '',
-  captionColor:    colorHex('captionColor', '#000000'),
-  ecc,
+  const ecc = document.getElementById('ecc')?.value || 'M';
+  const svg = composeCardSvg({
+    cardWidth,
+    transparentBg: isTransparent,
+    bgColor:        colorHex('bgColor', '#FFFFFF'),
+    captionText:    showCap ? caption : '',      // ← only when checked
+    captionColor:   colorHex('captionColor', '#000000'),
+    ecc,
 
     // look controls
     modulesShape:   document.getElementById('moduleShape')?.value || 'Square',
@@ -2131,7 +1464,7 @@ function refreshModulesMode(){
   // Module "shape" control (whatever your id is — try these in order)
   const shapeSel  =
     document.getElementById('modules') ||
-    document.getElementById('moduleShape') ||
+    document.getElementById('modulesShape') ||
     document.querySelector('[name="modules"]');
 
   // BODY color pair (hex + swatch). Use whatever ids you already have.
@@ -2166,40 +1499,18 @@ function refreshModulesMode(){
 
 function updatePreviewBackground() {
   const card = document.getElementById('qrPreview');
-  if (!card) return;
+  const col  = document.getElementById('bgColor')?.value || '#FFFFFF';
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
 
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = background ON
-
-  // Read knobs (use existing ids; harmless if missing)
-  const topHex  = document.getElementById('bgTopHex')?.value
-               || document.getElementById('bgTopColor')?.value || '#FFFFFF';
-  const botHex  = document.getElementById('bgBottomHex')?.value
-               || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-  const topA    = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
-  const botA    = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
-
-  // Tiny local converter; no new globals
-  const hexToRgb = (h) => {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
-    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:255,g:255,b:255 };
-  };
-  const rgba = (hex, aPct) => {
-    const {r,g,b} = hexToRgb(hex);
-    const a = Math.max(0, Math.min(100, Number(aPct))) / 100;
-    return `rgba(${r}, ${g}, ${b}, ${a})`;
-  };
-
-  // Construct the CSS gradient for the unified ::before
-  const grad = `linear-gradient(180deg, ${rgba(topHex, topA)} 0%, ${rgba(botHex, botA)} 100%)`;
-  card.style.setProperty('--bg-paint', grad);
-
-  // Optional soft shadow only for fill mode
-  card.style.setProperty('--bg-shadow', isTransparent ? 'none' : '0 14px 40px rgba(0,0,0,.35)');
-
-  // Maintain stroke/fill classes (used by CSS above)
-  card.classList.toggle('card--stroke', isTransparent);
-  card.classList.toggle('card--fill', !isTransparent);
+  if (isTransparent) {
+    card.classList.add('card--stroke');
+    card.classList.remove('card--fill');
+    card.style.removeProperty('--frame-color');
+  } else {
+    card.classList.add('card--fill');
+    card.classList.remove('card--stroke');
+    card.style.setProperty('--frame-color', col);
+  }
 }
 
 // ----- Background gating (transparent toggle) -----
@@ -2211,22 +1522,11 @@ function refreshBackground() {
                || document.getElementById('bgHex')
                || document.getElementById('bghex');
 
-  const isTransparent = !tgl?.checked;
+  const isTransparent = !!tgl?.checked;
 
   // 1) Disable inputs
-  // legacy single-field (safe no-ops if missing)
-if (hex)    hex.disabled    = isTransparent;
-if (swatch) swatch.disabled = isTransparent;
-
-// new gradient fields
-const hexes   = [...document.querySelectorAll('#bgTopHex,#bgBottomHex')];
-const swatchs = [...document.querySelectorAll('#bgTopColor,#bgBottomColor')];
-const sliders = [...document.querySelectorAll('#bgTopAlpha,#bgBottomAlpha')];
-[...hexes, ...swatchs, ...sliders].forEach(el => { if (el) el.disabled = isTransparent; });
-
-// mute the two gradient rows visually
-document.querySelectorAll('#bgTopHex,#bgBottomHex')
-  .forEach(el => el.closest('label')?.classList.toggle('field-muted', isTransparent));
+  if (hex)    hex.disabled    = isTransparent;
+  if (swatch) swatch.disabled = isTransparent;
 
   // 2) Find the row that contains BOTH the color controls and the checkbox
   let row = swatch?.parentElement || hex?.parentElement || null;
@@ -2293,6 +1593,18 @@ function wireDesignGatesOnce() {
   wireDesignGatesOnce._done = true;
 }
 
+// ---- Stable boot: after DOM and at next frame
+window.addEventListener('DOMContentLoaded', () => {
+  const mount   = document.getElementById('qrMount');
+  const preview = document.getElementById('qrPreview');
+
+  requestAnimationFrame(() => {
+    if (typeof render === 'function') render();
+  });
+});
+
+document.documentElement.classList.add('ui-ready');
+
 // ----------------------------------------------------------
 // Helper: add phone background to a *copy* of the SVG for export
 // ----------------------------------------------------------
@@ -2300,14 +1612,14 @@ function applyPhoneBackgroundForExport(svgEl) {
   const card = document.getElementById('qrPreview');
   const cs   = getComputedStyle(card);
 
-  const isTransparent = !document.getElementById('bgTransparent')?.checked;
+  const isTransparent = !!document.getElementById('bgTransparent')?.checked;
   const fillColor     = (cs.getPropertyValue('--frame-color') || '').trim() || '#FFFFFF';
   const radius        = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0;
 
   // Clean any previous rect we might have added (in case of repeated exports)
   svgEl.querySelector('[data-export-bg]')?.remove();
 
-  return; // background now handled in PNG export; keep SVG transparent
+  if (isTransparent) return; // transparent preview => transparent export
 
   // Size from viewBox (fallback to DOM size if needed)
   const vb = (svgEl.getAttribute('viewBox') || `0 0 ${svgEl.clientWidth} ${svgEl.clientHeight}`)
@@ -2339,6 +1651,7 @@ function downloadSvg(filename = 'qr.svg') {
   if (!src) return;
 
   const svg = src.cloneNode(true);       // don’t touch the live preview
+  applyPhoneBackgroundForExport(svg);    // add background if needed
 
   const xml = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
@@ -2373,52 +1686,6 @@ async function downloadPng(filename = 'qr.png', scale = 3) {
   canvas.width = Math.round(w * scale);
   canvas.height = Math.round(h * scale);
   const ctx = canvas.getContext('2d');
-
-  // Match preview background (gradient vs transparent) before drawing SVG
-  const tgl = document.getElementById('bgTransparent');
-  const isTransparent = !tgl?.checked; // checked = background ON (fill)
-
-  if (!isTransparent) {
-    // Read the same knobs used by updatePreviewBackground()
-    const topHex = document.getElementById('bgTopHex')?.value
-                || document.getElementById('bgTopColor')?.value || '#FFFFFF';
-    const botHex = document.getElementById('bgBottomHex')?.value
-                || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
-    const topA   = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
-    const botA   = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
-
-    const hexToRgb = (h) => {
-      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
-      if (!m) return { r: 255, g: 255, b: 255 };
-      return {
-        r: parseInt(m[1], 16),
-        g: parseInt(m[2], 16),
-        b: parseInt(m[3], 16),
-      };
-    };
-
-    const rgba = (hex, pct) => {
-      const { r, g, b } = hexToRgb(hex);
-      const a = Math.max(0, Math.min(100, Number(pct))) / 100;
-      return `rgba(${r}, ${g}, ${b}, ${a})`;
-    };
-
-    // Vertical gradient, 0% → 100% height, same as CSS 180deg
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, rgba(topHex, topA));
-    grad.addColorStop(1, rgba(botHex, botA));
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-
-  // Ensure custom fonts are ready before rasterizing the SVG
-  if (document.fonts && document.fonts.ready) {
-    try {
-      await document.fonts.ready;
-    } catch (_) {
-      // non-fatal; fall back to whatever is loaded
-    }
-  }
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   URL.revokeObjectURL(url);
@@ -2653,140 +1920,89 @@ document.getElementById('exportBtn')?.addEventListener('click', async () => {
   reportExport().catch(() => { /* silent */ });
 
   // then download(s)
-  //if (wantSvg) downloadSvg(`${base}.svg`);//
+  if (wantSvg) downloadSvg(`${base}.svg`);
   if (wantPng) downloadPng(`${base}.png`);
 });
 
-// === Stacked-mode "park under phone" helper ==========================
-(function(){
-  const R = document.documentElement;
+// ---------- Stepper / Accordion: one open at a time + inner scroll ----------
+(function wireStepper() {
+  const root     = document.getElementById('stepper');
+  const finishEl = document.getElementById('finishCard');
+  if (!root || !finishEl) return;
 
-  function numberVar(cssVar, fallback = 0){
-    const v = getComputedStyle(R).getPropertyValue(cssVar).trim();
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : fallback;
-  }
+  const headers = Array.from(root.querySelectorAll('[data-step-toggle]'));
+  const panels  = Array.from(root.querySelectorAll('[data-step-panel]'));
 
-  // Compute where the stepper should "park" its open header under the phone
-  function computeParkOffset(){
-    const R = document.documentElement;
+  function computeMaxPanelHeight() {
+  // Try the CSS token first
+  const css = getComputedStyle(document.documentElement);
+  const park = parseFloat(css.getPropertyValue('--park-h')) || 520;
 
-    const stage = document.querySelector('.preview-stage');
-    if (!stage) return null;
-
-    // Use the visible QR card if present; fallback to the stage
-    const previewEl = document.getElementById('qrPreview') || stage;
-    const previewH  = previewEl.getBoundingClientRect().height;
-
-    const headerH = document.querySelector('.header-bar')
-        ?.getBoundingClientRect().height || 56;
-    // Make header height available to CSS so scroll-margin/padding can do exact parking
-    R.style.setProperty('--header-h', headerH + 'px');
-
-    // Read CSS knobs
-    const getNum = (name, fallback) => {
-      const v = getComputedStyle(R).getPropertyValue(name).trim();
-      const n = parseFloat(v);
-      return Number.isFinite(n) ? n : fallback;
-    };
-
-    const overlap = getNum('--preview-overlap', 180);
-    const gap     = getNum('--preview-gap', 8);
-    const nudge   = getNum('--park-nudge', 16);
-
-    // Phone height - overlap + gap + nudge
-    const park = Math.max(0, Math.round(previewH - overlap + gap + nudge));
-
-    // Expose as CSS var so CSS scroll-* rules can use it if needed
-    R.style.setProperty('--park-offset', park + 'px');
-
-    // Helpful if you keep inner scrolling elsewhere; harmless otherwise
-    const stepper = document.getElementById('stepper');
-    if (stepper){
-      stepper.style.scrollPaddingTop = `calc(${headerH}px + ${park}px)`;
-    }
-    return park;
-  }
-
-  // Make it globally callable (you already call window.reflowStepper elsewhere)
-  window.reflowStepper = function reflowStepper(){
-    computeParkOffset();
-  };
-
-  // Keep it fresh
-  window.addEventListener('resize', computeParkOffset, { passive: true });
-  window.addEventListener('orientationchange', computeParkOffset, { passive: true });
-  document.fonts?.ready?.then?.(computeParkOffset);
-  document.addEventListener('DOMContentLoaded', computeParkOffset);
-
-// --- Uniform "park under QR" on open (stacked only, stable + deterministic) ---
-document.removeEventListener?.('click', window.__okqr_park_handler__);
-window.__okqr_park_handler__ = function (e) {
-  const btn  = e.target.closest?.('[data-step-toggle]');
-  const card = btn?.closest?.('.step-card');
-  if (!card) return;
-
-  // Wait one microtask so header pills can expand before measuring
-  setTimeout(() => {
-    if (!window.matchMedia('(max-width: 1279px)').matches) return;
-    window.reflowStepper?.(); // recompute --park-offset after header reflows
-
-    // ✅ scroll to the wrapper (includes pills) — avoids post-scroll jump
-    const header = card.querySelector('.step-header-wrap')
-                || card.querySelector('.step-header')
-                || card;
-
-    const preferSmooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    header.scrollIntoView({
-      block: 'start',
-      behavior: preferSmooth ? 'smooth' : 'auto'
-    });
-  }, 0);
-};
-
-document.addEventListener('click', window.__okqr_park_handler__);
-
-// --- Safety: ensure headers remain clickable under the phone on mobile ---
-function applyClickThroughForMobile() {
-  const pass  = window.matchMedia('(max-width: 1279px)').matches;
-  const stage = document.querySelector('.preview-stage');
-  if (!stage) return;
-
-  const wrap   = stage.querySelector('.absolute'); // inner absolute inset wrapper
-  const qr     = stage.querySelector('#qrPreview');
-  const mount  = stage.querySelector('#qrMount');
-  const svg    = stage.querySelector('#qrMount > svg');
-  const arrows = stage.querySelectorAll('.nav-arrow');
-
-  if (pass) {
-    // Make the whole preview stack "glass"
-    stage.style.pointerEvents = 'none';
-    if (wrap)  wrap.style.pointerEvents  = 'none';
-    if (qr)    qr.style.pointerEvents    = 'none';
-    if (mount) mount.style.pointerEvents = 'none';
-    if (svg)   svg.style.pointerEvents   = 'none';
-
-    // …but keep the left/right arrows clickable
-    arrows.forEach(a => { a.style.pointerEvents = 'auto'; });
-  } else {
-    // Desktop: restore defaults
-    stage.style.pointerEvents = '';
-    if (wrap)  wrap.style.pointerEvents  = '';
-    if (qr)    qr.style.pointerEvents    = '';
-    if (mount) mount.style.pointerEvents = '';
-    if (svg)   svg.style.pointerEvents   = '';
-    arrows.forEach(a => { a.style.pointerEvents = ''; });
-  }
+  // Constrain to viewport so it never overflows
+  const safe = Math.max(240, Math.min(window.innerHeight - 120, park));
+  return Math.round(safe);
 }
-window.addEventListener('resize', applyClickThroughForMobile, { passive: true });
-document.addEventListener('DOMContentLoaded', applyClickThroughForMobile);
- 
+
+function openOnly(index, opts = {}) {
+  const focusHeader = opts.focusHeader ?? true;
+
+  panels.forEach((p, i) => {
+    const card   = headers[i]?.parentElement; // the card wrapper that contains the header
+    const isOpen = i === index;
+
+    // show/hide panel
+    p.style.display = isOpen ? 'block' : 'none';
+
+    // highlight card
+    if (card) card.classList.toggle('is-open', isOpen);
+
+    // scroll-frame for large panels only (Design/Mechanicals)
+    // keep Caption & Finish free of inner scroll
+    p.classList.remove('scroll-frame');
+    p.style.maxHeight = '';
+
+    const isBig = isOpen && i > 0 && i < panels.length - 1;
+    if (isBig) {
+      p.classList.add('scroll-frame');
+      p.style.maxHeight = computeMaxPanelHeight() + 'px';
+    }
+  });
+
+  // Optional: keep focus sensible
+  if (focusHeader) headers[index]?.focus({ preventScroll: true });
+}
+
+    // Wire clicks (accordion behavior)
+  headers.forEach((h, i) => {
+    h.addEventListener('click',     () => openOnly(i));
+    h.addEventListener('dblclick',  () => openOnly((i + 1) % panels.length));
+  });
+
+  // Keep sizes correct on resize (don’t steal focus)
+  window.addEventListener('resize', () => {
+    const openIndex = panels.findIndex(p => p.style.display !== 'none');
+    if (openIndex >= 0) openOnly(openIndex, { focusHeader: false });
+  });
+
+  // Initial state (Caption open)
+  openOnly(0); 
 })();
 
-
+// --- Safe boot: wait until both QRCode and render() exist ---
+(function boot(tries = 0) {
+  if (window.QRCode && typeof window.render === "function") {
+    console.log("✅ booting render()");
+    return window.render();
+  }
+  if (tries > 150) {
+    console.error("Still waiting for QRCode/render() — check script order.");
+    return;
+  }
+  setTimeout(() => boot(tries + 1), 80);
+})();
 
 // =======================================================
-// Color picker / hex text sync (robust pairing, DOM-safe)
+// Color picker ⇄ hex text sync (robust pairing, DOM-safe)
 // =======================================================
 (function bindColorHexSync(){
   const ready = () => {
@@ -2853,32 +2069,3 @@ document.addEventListener('DOMContentLoaded', applyClickThroughForMobile);
     ready();
   }
 })();
-
-// --- App Menu Modal (centered) ---
-(function () {
-  const btn    = document.getElementById('appMenuBtn');
-  const modal  = document.getElementById('appModal');
-  const closer = document.getElementById('appClose');
-  if (!btn || !modal || !closer) return;
-
-  function openAppModal() {
-    modal.classList.remove('hidden');
-    const first = modal.querySelector('[role="menuitem"],button,[href],input,select,textarea');
-    if (first) first.focus();
-    btn.setAttribute('aria-expanded', 'true');
-  }
-  function closeAppModal() {
-    modal.classList.add('hidden');
-    btn.setAttribute('aria-expanded', 'false');
-    btn.focus();
-  }
-
-  btn.addEventListener('click', (e) => { e.preventDefault(); openAppModal(); });
-  closer.addEventListener('click', closeAppModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeAppModal(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeAppModal();
-  });
-})();
-
-
