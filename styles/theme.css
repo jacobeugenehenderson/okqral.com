@@ -510,15 +510,6 @@ main { padding-bottom: calc(var(--footer-h) + var(--stack-gap));
   justify-self: start;
 }
 
-/* ── Caption card layout: input full-width, toggle beneath ─────────── */
-/* Make the caption step body a single-column grid so children stack */
-.step-card[data-step="caption"] .step-body{
-  display: grid !important;
-  grid-template-columns: 1fr;
-  row-gap: .5rem;               /* space between field and toggle */
-  align-items: start;
-}
-
 /* Ensure the caption text field spans the whole card */
 .step-card[data-step="caption"] label:has(#campaign){
   display: grid;                /* keep label as a block wrapper */
@@ -1491,9 +1482,6 @@ label:has(input[type="color"]) input[type="color"]{
   margin-inline-start: .25rem;
 }
 
-/* Dim the text on "QR Types" */
-/*#qrType.is-placeholder { color: var(--typo-ph-color, rgba(160,160,160,.65)); }*/
-
 /* === Modal & legacy dropdown overrides (safe, CSS-only) ================== */
 
 /* 2) Bulletproof centering of the dialog card (ignores any old absolute rules) */
@@ -1720,4 +1708,51 @@ label:has(input[type="color"]) input[type="color"]{
   inset: 0 !important;
   z-index: 9999 !important; /* ensure it's above all sticky and preview layers */
   pointer-events: auto !important;
+}
+
+
+/* =====================================================================
+   Emoji modal — close button
+   ---------------------------------------------------------------------
+   Was a lowercase letter "x" in a rectangle, styled with Tailwind
+   utilities including dark: variants. Those variants are keyed to
+   prefers-color-scheme, while this app decides light/dark with a .dark
+   class on <html> — so on a machine preferring dark the button painted
+   itself neutral-700 inside a light modal. Same mismatch that made the
+   emoji picker render dark.
+
+   Styled from tokens instead, so it follows the app rather than the OS.
+   Fallbacks on the two tokens the two apps do not share.
+   ===================================================================== */
+.emoji-close {
+  margin-left: auto;               /* the search field beside it is hidden */
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--ui-stroke);
+  border-radius: var(--shape-corner-full);
+  background: var(--ui-surface);
+  color: var(--md-sys-color-on-surface);
+  font: 500 1.25rem/1 var(--font-family, system-ui, sans-serif);
+  cursor: pointer;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    transform .1s ease;
+}
+
+.emoji-close:hover {
+  background: var(--ui-surface-variant);
+  border-color: var(--ui-stroke-hover);
+}
+
+.emoji-close:active {
+  transform: scale(0.94);
+}
+
+.emoji-close:focus-visible {
+  outline: 2px solid var(--ascend-control-ring, rgba(129, 230, 217, 0.55));
+  outline-offset: 2px;
 }
