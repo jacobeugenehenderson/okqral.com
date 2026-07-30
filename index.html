@@ -517,7 +517,13 @@
   picker.style.border = '0';
 
   const applyPickerTheme = () => {
-    picker.setAttribute('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    // emoji-picker-element has no "theme" attribute. It follows
+    // prefers-color-scheme unless the element carries a light/dark CLASS, so
+    // the attribute below was set correctly and silently ignored: on a machine
+    // preferring dark, the picker rendered dark inside a light app.
+    const dark = document.documentElement.classList.contains('dark');
+    picker.classList.toggle('dark', dark);
+    picker.classList.toggle('light', !dark);
   };
   applyPickerTheme();
   document.getElementById('themeToggle')?.addEventListener('click', applyPickerTheme);
