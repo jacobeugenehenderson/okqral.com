@@ -2416,6 +2416,83 @@ function applySvgExportBackground(svgEl) {
   svgEl.insertBefore(rect, svgEl.firstChild);   // backmost drawn node
 }
 
+// ----------------------------------------------------------
+// SVG cannot carry emoji, so it withdraws when emoji are used
+// ----------------------------------------------------------
+// Emoji are drawn into the SVG as <text>, which means the exported file does
+// not contain the glyph — only a request for one. It renders with whatever
+// emoji font opens the file, so it arrives monochrome, mis-sized, or as tofu,
+// and a QR made of tofu does not scan. PNG has no such problem: it rasterises
+// the glyphs here, where the right font is already loaded.
+//
+// The fix that would keep SVG honest is outlining the glyphs to paths, and it
+// is very likely unaffordable — the colour emoji faces are licensed, and
+// embedding their outlines in a distributed file redistributes the artwork
+// rather than rendering it.
+//
+// So the option is withdrawn rather than shipped broken. Returns a short
+// phrase naming where the emoji are, or null when SVG is safe to offer.
+function svgExportBlockedReason() {
+  if (document.getElementById('modulesMode')?.value === 'Emoji') return 'the module fill';
+  if (document.getElementById('centerMode')?.value  === 'Emoji') return 'the centre';
+
+  // The caption is only drawn when it is shown, so it can only spoil an export
+  // when it is on. Extended_Pictographic is the property that actually means
+  // "emoji" — \p{Emoji} also matches plain digits and #, which would disable
+  // SVG for a caption reading "2024".
+  const showing = document.getElementById('showCaption')?.checked;
+  if (showing) {
+    const pictographic = /\p{Extended_Pictographic}/u;
+    const head = document.getElementById('campaign')?.value || '';
+    const body = document.getElementById('captionBody')?.value || '';
+    if (pictographic.test(head) || pictographic.test(body)) return 'the caption';
+  }
+  return null;
+}
+
+// What the visitor actually wants, held separately from what the box can show.
+// Without this the feature would be invisible: every landing preset uses emoji,
+// so SVG is force-unticked at load, and simply leaving it unticked on recovery
+// means nobody who switches to a plain design ever sees it come back.
+// Seeded from the markup's default rather than a literal, so the two cannot
+// drift apart.
+let svgExportWanted = document.getElementById('wantSvg')?.checked ?? true;
+
+// Only a real toggle records intent. refreshSvgExportAvailability() sets
+// .checked programmatically, which fires no change event, so it cannot
+// overwrite the wish it is about to restore.
+document.getElementById('wantSvg')?.addEventListener('change', (e) => {
+  if (!e.target.disabled) svgExportWanted = e.target.checked;
+});
+
+function refreshSvgExportAvailability() {
+  const box = document.getElementById('wantSvg');
+  if (!box) return;
+
+  const reason = svgExportBlockedReason();
+  box.disabled = !!reason;
+  box.checked  = reason ? false : svgExportWanted;   // blocked cannot fire
+  box.closest('label')?.classList.toggle('field-muted', !!reason);
+
+  const note = document.getElementById('svgBlockedNote');
+  if (note) {
+    note.textContent = reason ? `SVG unavailable — emoji in ${reason} need PNG` : '';
+    note.hidden = !reason;
+  }
+}
+
+// Re-check whenever anything that can introduce an emoji moves. Presets go
+// through setValAndFire(), which dispatches change, so applying one is covered
+// by the same listeners.
+['modulesMode','centerMode','showCaption','campaign','captionBody'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('change', refreshSvgExportAvailability);
+  el.addEventListener('input',  refreshSvgExportAvailability);
+});
+document.addEventListener('DOMContentLoaded', refreshSvgExportAvailability);
+refreshSvgExportAvailability();
+
 // --- SVG download
 function downloadSvg(filename = 'qr.svg') {
   const src = getCurrentSvgNode();
@@ -2720,7 +2797,12 @@ async function reportExport() {
 
 document.getElementById('exportBtn')?.addEventListener('click', async () => {
   const wantPng = document.getElementById('wantPng')?.checked;
-  const wantSvg = document.getElementById('wantSvg')?.checked;
+
+  // Re-derive rather than trust the box: a preset can change the design after
+  // the visitor ticked SVG, and the tick would otherwise outlive the state
+  // that made it valid.
+  const svgBox  = document.getElementById('wantSvg');
+  const wantSvg = !!svgBox?.checked && !svgBox.disabled && !svgExportBlockedReason();
 
   // get caption or default
   const caption = document.getElementById('campaign')?.value?.trim() || 'okQRal';
