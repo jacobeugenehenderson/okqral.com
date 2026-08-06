@@ -2333,12 +2333,96 @@ function getCurrentSvgNode() {
   return document.querySelector('#qrMount svg');
 }
 
+// Read the four background knobs once, for the SVG export path.
+// updatePreviewBackground() and downloadPng() still each carry their own inline
+// copy of this logic; pointing them here is a worthwhile cleanup, but not one to
+// make in the same change that re-enables SVG — it would edit a working PNG path
+// for no reason. Three readers of the same four inputs is the known debt.
+function readBgStops() {
+  const topHex = document.getElementById('bgTopHex')?.value
+              || document.getElementById('bgTopColor')?.value || '#FFFFFF';
+  const botHex = document.getElementById('bgBottomHex')?.value
+              || document.getElementById('bgBottomColor')?.value || '#FFFFFF';
+  const topA   = Number(document.getElementById('bgTopAlpha')?.value ?? 100);
+  const botA   = Number(document.getElementById('bgBottomAlpha')?.value ?? 100);
+
+  // NB: checked = background ON. The id reads backwards from what it does.
+  const isTransparent = !document.getElementById('bgTransparent')?.checked;
+
+  const hexToRgb = (h) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h || '');
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) }
+             : { r: 255, g: 255, b: 255 };
+  };
+  const stop = (hex, pct) => {
+    const { r, g, b } = hexToRgb(hex);
+    return { color: `rgb(${r}, ${g}, ${b})`,
+             opacity: Math.max(0, Math.min(100, Number(pct))) / 100 };
+  };
+
+  return { isTransparent, top: stop(topHex, topA), bottom: stop(botHex, botA) };
+}
+
+// The preview's background is a CSS gradient on #qrPreview::before, painted
+// *behind* the SVG — so it has never been part of the exported file. PNG
+// re-paints it onto the canvas; this writes the same gradient into the SVG so
+// the two exports agree.
+//
+// Deliberately NOT applyPhoneBackgroundForExport(): downloadPng() already
+// calls that one and then paints its own gradient, so teaching it to inject a
+// rect would fill the PNG twice — and two 50% alphas composite to 75%, not 50%.
+function applySvgExportBackground(svgEl) {
+  const { isTransparent, top, bottom } = readBgStops();
+  if (isTransparent) return;
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const vb = (svgEl.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+  const w = vb[2] || parseFloat(svgEl.getAttribute('width'))  || 0;
+  const h = vb[3] || parseFloat(svgEl.getAttribute('height')) || 0;
+  if (!w || !h) return;
+
+  // ':scope >' matters. A plain querySelector('defs') searches descendants, and
+  // composeCardSvg() nests the whole inner QR <svg> — with its own <defs> —
+  // inside the card, so the unscoped version reaches into a different element
+  // and insertBefore against it throws.
+  let defs = svgEl.querySelector(':scope > defs');
+  if (!defs) {
+    defs = document.createElementNS(NS, 'defs');
+    svgEl.appendChild(defs);
+  }
+
+  // Vertical, 0% → 100%, matching the canvas gradient and CSS 180deg.
+  const grad = document.createElementNS(NS, 'linearGradient');
+  grad.setAttribute('id', 'exportBgGrad');
+  grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+  grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+  for (const [offset, s] of [['0', top], ['1', bottom]]) {
+    const el = document.createElementNS(NS, 'stop');
+    el.setAttribute('offset', offset);
+    el.setAttribute('stop-color', s.color);
+    el.setAttribute('stop-opacity', String(s.opacity));
+    grad.appendChild(el);
+  }
+  defs.appendChild(grad);
+
+  // Square corners and the full viewBox, because that is what the PNG's
+  // ctx.fillRect covers. Matching the rounded preview card would not match PNG.
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('data-export-bg', '1');
+  rect.setAttribute('x', '0'); rect.setAttribute('y', '0');
+  rect.setAttribute('width', String(w));
+  rect.setAttribute('height', String(h));
+  rect.setAttribute('fill', 'url(#exportBgGrad)');
+  svgEl.insertBefore(rect, svgEl.firstChild);   // backmost drawn node
+}
+
 // --- SVG download
 function downloadSvg(filename = 'qr.svg') {
   const src = getCurrentSvgNode();
   if (!src) return;
 
   const svg = src.cloneNode(true);       // don’t touch the live preview
+  applySvgExportBackground(svg);
 
   const xml = new XMLSerializer().serializeToString(svg);
   const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
@@ -2653,7 +2737,7 @@ document.getElementById('exportBtn')?.addEventListener('click', async () => {
   reportExport().catch(() => { /* silent */ });
 
   // then download(s)
-  //if (wantSvg) downloadSvg(`${base}.svg`);//
+  if (wantSvg) downloadSvg(`${base}.svg`);
   if (wantPng) downloadPng(`${base}.png`);
 });
 

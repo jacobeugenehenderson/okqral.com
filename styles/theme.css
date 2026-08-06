@@ -1591,10 +1591,6 @@ label:has(input[type="color"]) input[type="color"]{
   vertical-align: middle;  /* ensure inline alignment with neighbors */
 }
 
-/* Temporarily hide the SVG export toggle in the Finish step */
-.step-card[data-step="finish"] label:has(#wantSvg) {
-  display: none !important;
-}
 /* =========================
   MOBILE OVERRIDES
 ========================= */
